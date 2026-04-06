@@ -7,7 +7,7 @@ import {
     DisconnectReason, 
     Browsers, 
     fetchLatestBaileysVersion,
-    makeCacheableSignalKeyStore, // Fitur Wajib Baileys Terbaru
+    makeCacheableSignalKeyStore,
     jidNormalizedUser
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
@@ -26,20 +26,17 @@ import { loadPlugins, watchPlugins } from './src/lib/loader.js';
 // --- CONFIG ---
 const USE_PAIRING_CODE = true;
 const MONGO_URI = process.env.MONGO_URI;
+const BOT_NUMBER = process.env.BOT_NUMBER || '6283197076617'; // Hardcode nomor mu
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_FOLDER = path.join(__dirname, 'src/plugins');
 
 // Logger level fatal agar terminal bersih
 const logger = pino({ level: 'fatal' });
 
-const question = (text) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    return new Promise((resolve) => rl.question(text, (ans) => { rl.close(); resolve(ans); }));
-};
-
 async function startBot() {
     console.clear();
     console.log(chalk.cyan.bold('🚀 MEMULAI MIMOSA V7 (LIGHTWEIGHT MODE)...'));
+    console.log(chalk.yellow(`📱 Bot Number: ${BOT_NUMBER}`));
 
     // 1. Database
     if (!MONGO_URI) {
@@ -62,39 +59,18 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         logger,
-        printQRInTerminal: !USE_PAIRING_CODE,
+        printQRInTerminal: false, // Matikan QR, pakai pairing code
         auth: {
             creds: state.creds,
-            // Cacheable Key Store untuk stabilitas sesi (Anti Decryption Error)
-            keys: makeCacheableSignalKeyStore(state.keys, logger), 
+            keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: true,
         markOnlineOnConnect: false,
-        syncFullHistory: false // Matikan sync agar ringan
+        syncFullHistory: false
     });
 
-    // 5. Pairing Code
-    if (USE_PAIRING_CODE && !sock.authState.creds.registered) {
-        console.log(chalk.yellow.bold('⚠️  Pairing Process...'));
-        let phoneNumber = process.env.BOT_NUMBER;
-        if (!phoneNumber) {
-            phoneNumber = await question(chalk.bgMagenta.white(' Masukkan Nomor Bot (62xxx): ') + ' ');
-        }
-        phoneNumber = phoneNumber.replace(/[^0-9]/g, '');
-        
-        setTimeout(async () => {
-            try {
-                const code = await sock.requestPairingCode(phoneNumber);
-                console.log(chalk.black.bgGreen(` KODE PAIRING: `));
-                console.log(chalk.black.bgWhite(` ${code?.match(/.{1,4}/g)?.join('-') || code} `));
-            } catch (err) {
-                console.error('Gagal request code:', err);
-            }
-        }, 3000);
-    }
-
-    // 6. Connection Handler
+    // 5. Connection Handler
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
 
@@ -104,6 +80,7 @@ async function startBot() {
                 console.log(chalk.red('Sesi Logged Out. Hapus folder sessions.'));
                 process.exit(0);
             } else {
+                console.log(chalk.yellow('🔄 Koneksi terputus, restarting...'));
                 startBot();
             }
         } else if (connection === 'open') {
@@ -114,6 +91,47 @@ async function startBot() {
 
     sock.ev.on('creds.update', saveCreds);
 
+    // 6. PAIRING CODE - OTOMATIS LANGSUNG REQUEST
+    if (USE_PAIRING_CODE && !state.creds.registered) {
+        console.log(chalk.yellow.bold('⚠️  Meminta kode pairing...'));
+        
+        // Fungsi untuk request pairing code dengan retry
+        const requestPairingWithRetry = async (retries = 5) => {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    console.log(chalk.blue(`📱 Mencoba request kode untuk ${BOT_NUMBER} (percobaan ${i + 1}/${retries})...`));
+                    
+                    // Tunggu socket benar-benar siap
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    const code = await sock.requestPairingCode(BOT_NUMBER);
+                    const formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
+                    
+                    console.log(chalk.black.bgGreen(`\n🔐 KODE PAIRING: ${formattedCode} 🔐\n`));
+                    console.log(chalk.cyan('📱 Cara menggunakan:'));
+                    console.log(chalk.white('   1. Buka WhatsApp di nomor ' + BOT_NUMBER));
+                    console.log(chalk.white('   2. Pengaturan → Perangkat Tertaut'));
+                    console.log(chalk.white('   3. Tautkan Perangkat → Tautkan dengan kode pairing'));
+                    console.log(chalk.white('   4. Masukkan kode: ' + formattedCode + '\n'));
+                    
+                    return true;
+                } catch (err) {
+                    console.log(chalk.red(`❌ Gagal: ${err.message}`));
+                    if (i < retries - 1) {
+                        console.log(chalk.blue(`⏳ Menunggu 5 detik sebelum mencoba lagi...`));
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                    }
+                }
+            }
+            console.log(chalk.red.bold('❌ Gagal mendapatkan kode pairing setelah beberapa percobaan!'));
+            console.log(chalk.yellow('💡 Pastikan nomor ' + BOT_NUMBER + ' terdaftar di WhatsApp dan koneksi internet stabil'));
+            return false;
+        };
+
+        // Jalankan request pairing
+        await requestPairingWithRetry(5);
+    }
+
     // 7. Message Handler
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         try {
@@ -121,8 +139,7 @@ async function startBot() {
             const m = chatUpdate.messages[0];
             if (!m.message) return;
             
-            // Langsung panggil handler tanpa store
-            await handler(sock, m, chatUpdate); 
+            await handler(sock, m, chatUpdate);
         } catch (err) {
             console.error(chalk.red('Handler Error:'), err);
         }
