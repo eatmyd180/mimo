@@ -162,56 +162,109 @@ global.fkontak = {
         }
 
         m.reply = async (content, options = {}) => {
-            try {
-                if (typeof content === 'string') {
-                    return sock.sendMessage(m.key.remoteJid, {
-                        text: content,
-                        mentions: parseMentions(content),
-                        contextInfo: {
-                            forwardingScore: options.forward ? 999 : 0,
-                            isForwarded: options.forward || false,
-                            externalAdReply: options.externalAdReply || (global.externalAd?.enabled ? {
-                                title: global.externalAd.title || global.botName,
-                                body: global.externalAd.body || global.footer,
-                                thumbnailUrl: global.externalAd.thumbnail,
-                                sourceUrl: global.externalAd.sourceUrl,
-                                mediaType: 1,
-                                renderLargerThumbnail: true
-                            } : undefined)
-                        },
-                        ...options
-                    }, { quoted: m })
-                } else if (Buffer.isBuffer(content)) {
-                    const type = await fileTypeFromBuffer(content)
-                    if (type?.mime?.startsWith('image/')) {
-                        return sock.sendMessage(m.key.remoteJid, {
-                            image: content,
-                            caption: options.caption || '',
-                            ...options
-                        }, { quoted: m })
-                    } else if (type?.mime?.startsWith('video/')) {
-                        return sock.sendMessage(m.key.remoteJid, {
-                            video: content,
-                            caption: options.caption || '',
-                            ...options
-                        }, { quoted: m })
-                    } else {
-                        return sock.sendMessage(m.key.remoteJid, {
-                            document: content,
-                            mimetype: type?.mime || 'application/octet-stream',
-                            fileName: options.filename || `file.${type?.ext || 'bin'}`,
-                            caption: options.caption || '',
-                            ...options
-                        }, { quoted: m })
-                    }
-                } else if (typeof content === 'object') {
-                    return sock.sendMessage(m.key.remoteJid, content, { quoted: m, ...options })
-                }
-            } catch (e) {
-                console.error('Reply Error:', e)
-                return sock.sendMessage(m.key.remoteJid, { text: 'Error: ' + e.message }, { quoted: m })
+    try {
+        // Baca thumbnail dari file lokal src/mimosa.png
+        const thumbPath = path.join(process.cwd(), 'src', 'mimosa.png');
+        let thumbBuffer = null;
+        try {
+            thumbBuffer = fs.readFileSync(thumbPath);
+        } catch (err) {}
+
+        // Utamakan global.fkon sebagai quoted
+        const quotedMsg = global.fkon || options.quoted || m;
+        
+        // Forward newsletter config
+        const newsletterConfig = {
+            forwardingScore: 999,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: '120363369878409989@newsletter',
+                serverMessageId: Math.floor(Math.random() * 1000),
+                newsletterName: '✨ Mimosa Multi-Device »'
             }
+        };
+        
+        if (typeof content === 'string') {
+            return sock.sendMessage(m.key.remoteJid, {
+                text: content,
+                mentions: parseMentions(content),
+                contextInfo: {
+                    ...newsletterConfig,
+                    externalAdReply: options.externalAdReply || (global.externalAd?.enabled ? {
+                        title: global.externalAd.title || global.botName,
+                        body: global.externalAd.body || global.footer,
+                        thumbnail: thumbBuffer,
+                        thumbnailUrl: thumbBuffer ? undefined : global.externalAd.thumbnail,
+                        sourceUrl: global.externalAd.sourceUrl,
+                        mediaType: 1,
+                        renderLargerThumbnail: true
+                    } : undefined)
+                },
+                ...options
+            }, { quoted: quotedMsg })
+        } 
+        else if (Buffer.isBuffer(content)) {
+            const type = await fileTypeFromBuffer(content)
+            if (type?.mime?.startsWith('image/')) {
+                return sock.sendMessage(m.key.remoteJid, {
+                    image: content,
+                    caption: options.caption || '',
+                    contextInfo: {
+                        ...newsletterConfig,
+                        externalAdReply: options.externalAdReply ? undefined : {
+                            title: 'MIMOSA BOT',
+                            body: 'Simple • Fast • Secure',
+                            thumbnail: thumbBuffer,
+                            sourceUrl: 'https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27',
+                            mediaType: 1,
+                            renderLargerThumbnail: true
+                        }
+                    },
+                    ...options
+                }, { quoted: quotedMsg })
+            } 
+            else if (type?.mime?.startsWith('video/')) {
+                return sock.sendMessage(m.key.remoteJid, {
+                    video: content,
+                    caption: options.caption || '',
+                    contextInfo: {
+                        ...newsletterConfig,
+                        gifPlayback: options.gifPlayback || false,
+                        externalAdReply: options.externalAdReply ? undefined : {
+                            title: 'MIMOSA BOT',
+                            body: 'Simple • Fast • Secure',
+                            thumbnail: thumbBuffer,
+                            sourceUrl: 'https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27',
+                            mediaType: 1,
+                            renderLargerThumbnail: true
+                        }
+                    },
+                    ...options
+                }, { quoted: quotedMsg })
+            } 
+            else {
+                return sock.sendMessage(m.key.remoteJid, {
+                    document: content,
+                    mimetype: type?.mime || 'application/octet-stream',
+                    fileName: options.filename || `file.${type?.ext || 'bin'}`,
+                    caption: options.caption || '',
+                    contextInfo: newsletterConfig,
+                    ...options
+                }, { quoted: quotedMsg })
+            }
+        } 
+        else if (typeof content === 'object') {
+            return sock.sendMessage(m.key.remoteJid, content, { 
+                quoted: quotedMsg, 
+                contextInfo: newsletterConfig,
+                ...options 
+            })
         }
+    } catch (e) {
+        console.error('Reply Error:', e)
+        return sock.sendMessage(m.key.remoteJid, { text: 'Error: ' + e.message }, { quoted: global.fkon || m })
+    }
+}
 
         // ==================== PERBAIKAN QUOTED MESSAGE DENGAN TEXT ====================
         if (m.msg?.contextInfo?.quotedMessage) {
@@ -483,6 +536,34 @@ global.fkontak = {
             }
         }
 
+// ==================== PLUGIN ALL (Auto Respon Tanpa Command) ====================
+for (let plugin of Object.values(global.plugins)) {
+    if (!plugin) continue
+    if (typeof plugin.all === 'function') {
+        try {
+            await plugin.all(sock, m, {
+                body,
+                isCmd,
+                command,
+                prefix,
+                args,
+                text,
+                user,
+                isGroup,
+                sender,
+                senderNumber,
+                botNumber,
+                isOwner,
+                pushName,
+                store
+            })
+        } catch (e) {
+            console.error(chalk.bgRed.white('[ALL PLUGIN ERROR]'), e)
+        }
+    }
+}
+// ==================== END PLUGIN ALL ====================
+
         const beforePlugins = Object.values(global.plugins)
             .filter(p => typeof p?.before === 'function')
             .sort((a, b) => (a.priority ?? 10) - (b.priority ?? 10))
@@ -524,7 +605,8 @@ global.fkontak = {
             let executed = false;
             
             for (let plugin of Object.values(global.plugins)) {
-                if (!plugin || !plugin.cmd) continue
+                if (!plugin) continue
+if (!plugin.cmd && !plugin.before) continue
 
                 const isMatch = Array.isArray(plugin.cmd)
                     ? plugin.cmd.includes(command)

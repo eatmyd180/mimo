@@ -37,8 +37,11 @@ const loadPlugins = async (folder) => {
                 global.plugins[relativePath] = module.default;
             }
         } catch (e) {
-            console.error(chalk.red(`Error loading plugin ${file}:`), e);
-        }
+    console.error(chalk.red(`Error loading plugin ${file}:`));
+    console.error(chalk.yellow(`   📍 File: ${fullPath}`));
+    console.error(chalk.red(`   ❌ Message: ${e.message}`));
+    console.error(chalk.red(`   📝 Stack: ${e.stack}`));
+}
     }
     console.log(chalk.green(`✅ Berhasil memuat ${Object.keys(global.plugins).length} Plugins`));
 };
