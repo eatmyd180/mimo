@@ -1,48 +1,69 @@
-// plugins/sticker/sticker.js
-import { downloadContentFromMessage } from '@whiskeysockets/baileys';
-import { createSticker } from '../../lib/sticker.js'; // Gunakan createSticker, bukan writeExif
-import { toSmallCaps } from '../../font.js';
+import { sticker } from '../../lib/converter.js';
 
 export default {
-    cmd: ['s', 'sticker', 'stiker'],
+    cmd: ['s', 'sticker', 'stiker', 'sgif', 'sfull'],
     tags: ['sticker'],
-    run: async (sock, m) => {
+    limit: true,
+    run: async (sock, m, { prefix, command }) => {
+        
+        if (!m.quoted) {
+            return m.reply(`📌 *Cara Penggunaan:*\nReply gambar/video/sticker dengan perintah *${prefix + command}*\n\nContoh: ${prefix + command} (reply ke media)`);
+        }
+
+        const mediaTypes = ['imageMessage', 'videoMessage', 'stickerMessage'];
+        const hasMedia = mediaTypes.includes(m.quoted.type);
+        
+        if (!hasMedia) {
+            return m.reply(`❌ *Format Salah!*\nHarap reply ke gambar, video, atau stiker.`);
+        }
+
+        await m.react('⏳');
+
         try {
-            const quoted = m.quoted || m;
-            const msg = quoted.message || quoted;
+            let mediaBuffer = await m.quoted.download();
             
-            if (!msg.imageMessage && !msg.videoMessage) {
-                return m.reply(toSmallCaps('❌ *balas gambar/video!*'));
+            if (!mediaBuffer) {
+                throw new Error('Gagal mendownload media');
+            }
+
+            let isVideo = false;
+            let isSticker = false;
+            
+            // Cek tipe media
+            if (m.quoted.type === 'videoMessage') {
+                isVideo = true;
+            } else if (m.quoted.type === 'stickerMessage') {
+                isSticker = true;
+                // Stiker sudah dalam format webp, langsung tambah exif saja
             }
             
-            await m.react('⏳');
+            const packname = global.packname || 'Mimosa Bot';
+            const author = global.author || 'Mimosa-chan';
             
-            const type = msg.imageMessage ? 'image' : 'video';
-            const stream = await downloadContentFromMessage(
-                msg[type + 'Message'], 
-                type
-            );
+            let stickerBuffer;
             
-            let buffer = Buffer.from([]);
-            for await (const chunk of stream) {
-                buffer = Buffer.concat([buffer, chunk]);
+            if (isSticker) {
+                // Stiker ke stiker (ganti metadata)
+                const { addExif } = await import('../lib/converter.js');
+                stickerBuffer = await addExif(mediaBuffer, packname, author);
+            } else {
+                // Gambar/Video ke stiker
+                stickerBuffer = await sticker(mediaBuffer, packname, author, isVideo);
             }
-            
-            // Gunakan createSticker yang sudah ada
-            const stickerBuffer = await createSticker(buffer, {
-                packname: global.packname || 'Mimosa Bot',
-                author: global.author || '@hamzzdev'
-            });
-            
+
             await sock.sendMessage(m.key.remoteJid, {
                 sticker: stickerBuffer
             }, { quoted: m });
-            
+
             await m.react('✅');
-        } catch (e) {
-            console.error('Sticker Error:', e);
+
+            // Hapus pesan perintah (opsional)
+            // await sock.sendMessage(m.key.remoteJid, { delete: m.key });
+
+        } catch (error) {
+            console.error('Sticker error:', error);
             await m.react('❌');
-            m.reply(toSmallCaps(`❌ *error:* ${e.message}`));
+            m.reply(`❌ *Gagal membuat stiker*\n\nDetail: ${error.message}`);
         }
     }
 };

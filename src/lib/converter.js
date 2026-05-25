@@ -12,7 +12,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
 const tmpDir = join(__dirname, '../tmp');
 
-// Buat folder tmp jika belum ada
 import { existsSync, mkdirSync } from 'fs';
 if (!existsSync(tmpDir)) {
     mkdirSync(tmpDir, { recursive: true });
@@ -21,29 +20,50 @@ if (!existsSync(tmpDir)) {
 // ==================== FFMPEG BASIC ====================
 function ffmpeg(buffer, args = [], ext = '', ext2 = '') {
     return new Promise(async (resolve, reject) => {
+        let tmp = null;
+        let out = null;
         try {
-            let tmp = join(tmpDir, +new Date() + '.' + ext);
-            let out = tmp + '.' + ext2;
+            tmp = join(tmpDir, +new Date() + '.' + ext);
+            out = tmp + '.' + ext2;
             await fs.writeFile(tmp, buffer);
-            spawn('ffmpeg', [
+            
+            const ffmpegProcess = spawn('ffmpeg', [
                 '-y',
                 '-i', tmp,
                 ...args,
                 out
-            ])
-            .on('error', reject)
-            .on('close', async (code) => {
+            ]);
+            
+            ffmpegProcess.on('error', (err) => {
+                console.error('FFmpeg spawn error:', err);
+                reject(err);
+            });
+            
+            ffmpegProcess.on('close', async (code) => {
                 try {
-                    await fs.unlink(tmp);
-                    if (code !== 0) return reject(code);
+                    if (tmp && await fs.access(tmp).then(() => true).catch(() => false)) {
+                        await fs.unlink(tmp).catch(() => {});
+                    }
+                    if (code !== 0) {
+                        reject(new Error(`FFmpeg exited with code ${code}`));
+                        return;
+                    }
                     const data = await fs.readFile(out);
-                    await fs.unlink(out);
+                    if (out && await fs.access(out).then(() => true).catch(() => false)) {
+                        await fs.unlink(out).catch(() => {});
+                    }
                     resolve(data);
                 } catch (e) {
                     reject(e);
                 }
             });
         } catch (e) {
+            if (tmp && await fs.access(tmp).then(() => true).catch(() => false)) {
+                await fs.unlink(tmp).catch(() => {});
+            }
+            if (out && await fs.access(out).then(() => true).catch(() => false)) {
+                await fs.unlink(out).catch(() => {});
+            }
             reject(e);
         }
     });
@@ -149,6 +169,55 @@ async function sticker(buffer, packname, author, isVideo = false) {
     return await addExif(webpBuffer, packname, author);
 }
 
+// ==================== WEBP TO MP4/GIF (Support Animated) ====================
+async function webpToMp4(webpBuffer) {
+    try {
+        console.log('Converting webp to mp4, buffer size:', webpBuffer.length);
+        
+        // Deteksi apakah animated webp (cek header ANIM)
+        const hexHeader = webpBuffer.toString('hex', 0, 20);
+        const isAnimated = hexHeader.includes('414e494d'); // 'ANIM' in hex
+        console.log('Is animated webp:', isAnimated);
+        
+        const args = [
+            '-c:v', 'libx264',
+            '-pix_fmt', 'yuv420p',
+            '-movflags', '+faststart',
+            '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=15'
+        ];
+        
+        const result = await ffmpeg(webpBuffer, args, 'webp', 'mp4');
+        console.log('Conversion success, result size:', result.length);
+        return result;
+    } catch (err) {
+        console.error('webpToMp4 error:', err);
+        throw err;
+    }
+}
+
+async function webpToGif(webpBuffer) {
+    try {
+        console.log('Converting webp to gif, buffer size:', webpBuffer.length);
+        
+        // Deteksi apakah animated webp
+        const hexHeader = webpBuffer.toString('hex', 0, 20);
+        const isAnimated = hexHeader.includes('414e494d');
+        console.log('Is animated webp:', isAnimated);
+        
+        const args = [
+            '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=10',
+            '-loop', '0'
+        ];
+        
+        const result = await ffmpeg(webpBuffer, args, 'webp', 'gif');
+        console.log('Conversion success, result size:', result.length);
+        return result;
+    } catch (err) {
+        console.error('webpToGif error:', err);
+        throw err;
+    }
+}
+
 // ==================== EXPORTS ====================
 export {
     // Audio
@@ -163,7 +232,10 @@ export {
     imageToWebp,
     videoToWebp,
     addExif,
-    sticker
+    sticker,
+    // Webp to MP4/GIF
+    webpToMp4,
+    webpToGif
 };
 
 // Auto reload
