@@ -58,6 +58,96 @@ export const handler = async (sock, m, chatUpdate, store = {}) => {
         const args = body.trim().split(/ +/).slice(1)
         const text = args.join(' ')
         const pushName = m.pushName || 'User'
+        
+        // ==================== FAKE QUOTED ====================
+
+global.fVerif = {
+    key: {
+        fromMe: false,
+        participant: '0@s.whatsapp.net',
+        remoteJid: 'status@broadcast'
+    },
+
+    message: {
+        conversation: ` © Powered by HamzzDev `
+    }
+}
+
+global.fkon = {
+    key: {
+        fromMe: false,
+        participant: sender,
+        remoteJid: 'status@broadcast'
+    },
+    message: {
+        contactMessage: {
+            displayName: pushName,
+            vcard:
+`BEGIN:VCARD
+VERSION:3.0
+N:;${pushName},;;;
+FN:${pushName}
+item1.TEL;waid=${senderNumber}:${senderNumber}
+item1.X-ABLabel:Ponsel
+END:VCARD`
+        }
+    }
+}
+
+global.fkontak2 = {
+    key: {
+        fromMe: false,
+        participant: '0@s.whatsapp.net',
+        remoteJid: 'status@broadcast'
+    },
+
+    message: {
+        productMessage: {
+            product: {
+                productImage: {
+                    jpegThumbnail: fs.readFileSync('./src/mimosa.png')
+                },
+
+                title: 'MIMOSA BOT',
+                description: 'Simple • Fast • Secure',
+
+                currencyCode: 'IDR',
+                priceAmount1000: '999999999',
+
+                retailerId: 'MIMOSA',
+                productImageCount: 1
+            },
+
+            businessOwnerJid: '0@s.whatsapp.net'
+        }
+    }
+}
+
+global.fdoc = {
+    key: {
+        participant: '0@s.whatsapp.net',
+        remoteJid: 'status@broadcast'
+    },
+    message: {
+        documentMessage: {
+            title: '« ✨ Mimosa Multi-Device »',
+            jpegThumbnail: null
+        }
+    }
+}
+
+// Fake Newsletter / Channel
+global.fkontak = {
+    contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+            newsletterJid: '120363369878409989@newsletter',
+            serverMessageId: 101,
+            newsletterName: '« ✨ Mimosa Multi-Device »'
+        }
+    }
+}
 
         m.mentionedJid = m.msg?.contextInfo?.mentionedJid || []
 

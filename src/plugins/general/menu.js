@@ -1,150 +1,232 @@
 import moment from 'moment-timezone';
+import os from 'os';
 import fs from 'fs';
 import path from 'path';
-import { toSmallCaps } from '../../font.js';
+
+function clockString(ms) {
+    let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000);
+    let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60;
+    let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60;
+
+    return [h, m, s]
+        .map(v => v.toString().padStart(2, '0'))
+        .join(':');
+}
+
+function ucapan() {
+    const time = moment
+        .tz('Asia/Jakarta')
+        .format('HH');
+
+    if (time >= 4 && time < 10) return 'Ohayou ☀️';
+    if (time >= 10 && time < 15) return 'Konnichiwa 🌸';
+    if (time >= 15 && time < 18) return 'Otsukaresama 🍂';
+    return 'Konbanwa 🌙';
+}
 
 export default {
     cmd: ['menu', 'help', 'list'],
     tags: ['general'],
+
     run: async (sock, m, { user, prefix, pushName, args }) => {
+
+        const videoPath = path.join(process.cwd(), 'src', 'mimosa.mp4');
+        let videoBuffer = null;
+        try {
+            videoBuffer = fs.readFileSync(videoPath);
+        } catch {}
+
         const thumbPath = path.join(process.cwd(), 'src', 'mimosa.png');
-        let thumbBuffer;
+        let thumbBuffer = null;
         try {
             thumbBuffer = fs.readFileSync(thumbPath);
-        } catch (err) {
-            console.error("Gambar src/mimosa.png tidak ditemukan, menggunakan URL fallback.");
-            thumbBuffer = null;
-        }
+        } catch {}
 
-        const time = moment().tz('Asia/Jakarta').format('HH:mm:ss');
-        const date = moment().tz('Asia/Jakarta').locale('id').format('LL');
-        
-        const uptime = process.uptime();
-        const runtime = formatRuntime(uptime);
-        
-        const hour = moment().tz('Asia/Jakarta').format('HH');
-        let greeting = 'Malam 🌙';
-        if (hour >= 4 && hour < 11) greeting = 'Pagi ⛅';
-        else if (hour >= 11 && hour < 15) greeting = 'Siang ☀️';
-        else if (hour >= 15 && hour < 18) greeting = 'Sore 🌇';
+        const command = args[0]?.toLowerCase();
 
-        const myChannel = {
-            newsletterJid: '120363204362148135@newsletter',
-            newsletterName: 'Mimosa Official Info',
-            serverMessageId: 100
-        };
+        const level = user?.rpg?.level || 0;
+        const premium = user?.premium ? 'Premium ✦' : 'Free User';
+        const limit = user?.limit || 0;
+        const money = user?.rpg?.money?.toLocaleString() || '0';
 
-        const plugins = Object.values(global.plugins);
-        const tags = {};
-        
-        plugins.forEach(p => {
-            if (p.tags && p.tags.length > 0) {
-                p.tags.forEach(t => {
-                    if (!tags[t]) tags[t] = [];
-                    tags[t].push(p.cmd[0]);
+        const uptime = clockString(process.uptime() * 1000);
+        const platform = os.platform() === 'android' ? 'Android' : 'Linux';
+        const date = moment().tz('Asia/Jakarta').format('DD/MM/YYYY');
+        const time = moment().tz('Asia/Jakarta').format('HH:mm');
+
+        const categories = {};
+
+        Object.values(global.plugins || {})
+            .filter(plugin => plugin && plugin.cmd && plugin.tags && !plugin.ownerOnly)
+            .forEach(plugin => {
+                const tags = Array.isArray(plugin.tags) ? plugin.tags : [plugin.tags];
+                tags.forEach(tagName => {
+                    if (!categories[tagName]) categories[tagName] = [];
+                    const commands = Array.isArray(plugin.cmd) ? plugin.cmd : [plugin.cmd];
+                    categories[tagName].push(...commands);
                 });
-            }
-        });
-        const availableTags = Object.keys(tags).sort();
+            });
 
-        if (!args[0]) {
-            let menuText = `
-${toSmallCaps('Hi')} ${pushName} 👋, ${toSmallCaps('Selamat')} ${greeting}
-
-┌  🤖 ${toSmallCaps('*BOT INFORMATION*')}
-│  ◦  ${toSmallCaps('*Name*')} : Mimosa Multi-Device
-│  ◦  ${toSmallCaps('*Mode*')} : Public
-│  ◦  ${toSmallCaps('*Platfrom*')} : Linux
-│  ◦  ${toSmallCaps('*Type*')} : Node.js (Baileys)
-│  ◦  ${toSmallCaps('*Uptime*')} : ${runtime}
-└  ◦  ${toSmallCaps('*Date*')} : ${date}
-
-┌  👤 ${toSmallCaps('*USER INFORMATION*')}
-│  ◦  ${toSmallCaps('*Name*')} : ${pushName}
-│  ◦  ${toSmallCaps('*Status*')} : ${user.premium ? 'Premium 👑' : 'Free User'}
-│  ◦  ${toSmallCaps('*Limit*')} : ${user.premium ? 'Unlimited' : user.limit}
-│  ◦  ${toSmallCaps('*Level*')} : ${user.rpg.level}
-└  ◦  ${toSmallCaps('*Money*')} : Rp ${user.rpg.money.toLocaleString()}
-
-┌  📂 ${toSmallCaps('*LIST CATEGORY*')}
-│  ${toSmallCaps('*Ketik*')} ${prefix}menu ${toSmallCaps('<kategori>')}
+        // ALL MENU
+        if (command === 'all') {
+            let allCommandsText = `
+┌〔 𝐀𝐋𝐋 𝐌𝐄𝐍𝐔 ✦ 〕
+│
+│ こんにちは ${pushName || 'User'}-chan 🌸
+│ ${ucapan()}
+│ ✦ Total Category : ${Object.keys(categories).length}
+│ ✦ Total Command  : ${Object.values(categories).reduce((a, b) => a + b.length, 0)}
 │
 `;
 
-            availableTags.forEach(tag => {
-                menuText += `│  ◦  ${prefix}menu ${tag}\n`;
-            });
-            
-            menuText += `│
-└  ${toSmallCaps('*_© Powered by HamzzDev_*')}`;
+            for (const cat of Object.keys(categories).sort()) {
+                allCommandsText += `
+├〔 ${cat.toUpperCase()} 〕
+${categories[cat].map(cmd => `│ ⤷ ${prefix}${cmd}`).join('\n')}
+│
+`;
+            }
 
-            return await sock.sendMessage(m.key.remoteJid, {
-                text: menuText,
+            allCommandsText += `
+└〔 © 𝐇𝐚𝐦𝐳𝐳 𝐃𝐞𝐯 ✦ 〕`;
+
+            await sock.sendMessage(m.key.remoteJid, {
+                text: allCommandsText,
                 contextInfo: {
-                    isForwarded: true,
                     forwardingScore: 999,
-                    forwardedNewsletterMessageInfo: myChannel,
+                    isForwarded: true,
+                    forwardedNewsletterMessageInfo: {
+                        newsletterJid: '120363369878409989@newsletter',
+                        serverMessageId: 101,
+                        newsletterName: '✨ Mimosa Multi-Device »'
+                    },
                     externalAdReply: {
-                        title: toSmallCaps("MIMOSA DASHBOARD"),
-                        body: toSmallCaps("Simple. Fast. Secure."),
+                        title: 'ALL MENU',
+                        body: 'Simple • Fast • Secure',
                         thumbnail: thumbBuffer,
-                        thumbnailUrl: thumbBuffer ? undefined : "https://files.catbox.moe/2mq5qq.png",
-                        sourceUrl: "https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27",
+                        sourceUrl: 'https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27',
                         mediaType: 1,
                         renderLargerThumbnail: true
                     }
                 }
-            }, { quoted: m });
+            }, { quoted: global.fkon });
+            return;
         }
 
-        const selectedTag = args[0].toLowerCase();
-        
-        if (!tags[selectedTag]) {
-            return sock.sendMessage(m.key.remoteJid, { 
-                text: `❌ ${toSmallCaps('Kategori')} *${selectedTag}* ${toSmallCaps('tidak ditemukan!')}` 
-            }, { quoted: m });
-        }
-
-        let detailText = `
-┌  📂 ${toSmallCaps(`*${selectedTag.toUpperCase()} MENU*`)}
+        // CATEGORY MENU
+        const selectedCategory = Object.keys(categories).find(cat => cat.toLowerCase() === command);
+        if (selectedCategory) {
+            let categoryText = `
+┌〔 𝐌𝐄𝐍𝐔 ${selectedCategory.toUpperCase()} ✦ 〕
 │
+│ いらっしゃいませ 🌸
+│
+${categories[selectedCategory].map(cmd => `│ ⤷ ${prefix}${cmd}`).join('\n')}
+│
+├〔 𝐈𝐍𝐅𝐎 〕
+│ ⤷ Total Command : ${categories[selectedCategory].length}
+│
+└〔 © 𝐇𝐚𝐦𝐳𝐳 𝐃𝐞𝐯 ✦ 〕
 `;
 
-        tags[selectedTag].forEach(cmd => {
-            detailText += `│  ◦  ${prefix}${cmd}\n`;
-        });
-
-        detailText += `│\n└  ${toSmallCaps('*© Powered by HamzzDev*')}`;
-
-        await sock.sendMessage(m.key.remoteJid, {
-            text: detailText,
-            contextInfo: {
-                isForwarded: true,
-                forwardingScore: 999,
-                forwardedNewsletterMessageInfo: myChannel,
-                externalAdReply: {
-                    title: toSmallCaps(`Category: ${selectedTag.toUpperCase()}`),
-                    body: toSmallCaps("Mimosa Bot Assistant"),
-                    thumbnail: thumbBuffer,
-                    thumbnailUrl: thumbBuffer ? undefined : "https://files.catbox.moe/2mq5qq.png",
-                    sourceUrl: "",
-                    mediaType: 1,
-                    renderLargerThumbnail: true
+            await sock.sendMessage(m.key.remoteJid, {
+                text: categoryText,
+                contextInfo: {
+                    forwardingScore: 999,
+                    isForwarded: true,
+                    forwardedNewsletterMessageInfo: {
+                        newsletterJid: '120363369878409989@newsletter',
+                        serverMessageId: 101,
+                        newsletterName: '✨ Mimosa Multi-Device »'
+                    },
+                    externalAdReply: {
+                        title: `MENU ${selectedCategory.toUpperCase()}`,
+                        body: 'Simple • Fast • Secure',
+                        thumbnail: thumbBuffer,
+                        sourceUrl: 'https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27',
+                        mediaType: 1,
+                        renderLargerThumbnail: true
+                    }
                 }
-            }
-        }, { quoted: m });
+            }, { quoted: global.fkon });
+            return;
+        }
+
+        // MAIN MENU (default)
+        let menuText = `
+┌〔 𝐌𝐈𝐌𝐎𝐒𝐀 𝐁𝐎𝐓 ✦ 〕
+│
+│ こんにちは ${pushName || 'User'}-chan ✨
+│ ${ucapan()}
+│
+├〔 𝐔𝐒𝐄𝐑 𝐈𝐍𝐅𝐎 〕
+│ ⤷ Level    : ${level}
+│ ⤷ Money    : Rp ${money}
+│ ⤷ Status   : ${premium}
+│ ⤷ Limit    : ${limit}
+│
+├〔 𝐁𝐎𝐓 𝐈𝐍𝐅𝐎 〕
+│ ⤷ Uptime   : ${uptime}
+│ ⤷ Date     : ${date}
+│ ⤷ Time     : ${time}
+│ ⤷ Platform : ${platform}
+│
+├〔 𝐋𝐈𝐒𝐓 𝐌𝐄𝐍𝐔 〕
+${Object.keys(categories).sort().map(cat => `│ ⤷ ${prefix}menu ${cat}`).join('\n')}
+│
+├〔 𝐇𝐎𝐖 𝐓𝐎 〕
+│ ⤷ ${prefix}menu all
+│ ⤷ ${prefix}menu downloader
+│ ⤷ ${prefix}menu tools
+│
+└〔 © 𝐇𝐚𝐦𝐳𝐳 𝐃𝐞𝐯 ✦ 〕
+`;
+
+        if (videoBuffer) {
+            await sock.sendMessage(m.key.remoteJid, {
+                video: videoBuffer,
+                mimetype: 'video/mp4',
+                gifPlayback: true,
+                caption: menuText,
+                contextInfo: {
+                    forwardingScore: 999,
+                    isForwarded: true,
+                    forwardedNewsletterMessageInfo: {
+                        newsletterJid: '120363369878409989@newsletter',
+                        serverMessageId: 101,
+                        newsletterName: '✨ Mimosa Multi-Device »'
+                    },
+                    externalAdReply: {
+                        title: 'MIMOSA BOT',
+                        body: 'Simple • Fast • Secure',
+                        thumbnail: thumbBuffer,
+                        sourceUrl: 'https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27',
+                        mediaType: 1,
+                        renderLargerThumbnail: true
+                    }
+                }
+            }, { quoted: global.fkon });
+        } else {
+            await sock.sendMessage(m.key.remoteJid, {
+                text: menuText,
+                contextInfo: {
+                    forwardingScore: 999,
+                    isForwarded: true,
+                    forwardedNewsletterMessageInfo: {
+                        newsletterJid: '120363369878409989@newsletter',
+                        serverMessageId: 101,
+                        newsletterName: '✨ Mimosa Multi-Device »'
+                    },
+                    externalAdReply: {
+                        title: 'MIMOSA BOT',
+                        body: 'Simple • Fast • Secure',
+                        thumbnail: thumbBuffer,
+                        sourceUrl: 'https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27',
+                        mediaType: 1,
+                        renderLargerThumbnail: true
+                    }
+                }
+            }, { quoted: global.fkon });
+        }
     }
 };
-
-function formatRuntime(seconds) {
-    seconds = Number(seconds);
-    var d = Math.floor(seconds / (3600 * 24));
-    var h = Math.floor(d % 3600 / 3600);
-    var m = Math.floor(seconds % 3600 / 60);
-    var s = Math.floor(seconds % 60);
-    var dDisplay = d > 0 ? d + (d == 1 ? " day, " : " days, ") : "";
-    var hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hours, ") : "";
-    var mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes, ") : "";
-    var sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
-    return dDisplay + hDisplay + mDisplay + sDisplay;
-}

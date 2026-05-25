@@ -80,7 +80,7 @@ global.newsletter = {
 global.externalAd = {
     title: 'Mimosa Multi-Device',
     body: 'Simple. Fast. Secure.',
-    thumbnail: 'https://files.catbox.moe/2mq5qq.png',
+    thumbnail: 'https://hamzz-cloud.vercel.app/api/file/6a14091744a50833d0a65a5b',
     sourceUrl: 'https://whatsapp.com/channel/0029VaFqS8I5Ui2TjO7d9W2L',
     enabled: true
 };

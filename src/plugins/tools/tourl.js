@@ -3,138 +3,125 @@ import FormData from 'form-data';
 import fs from 'fs';
 import path from 'path';
 import { tmpdir } from 'os';
-// TAMBAHAN PENTING: Import helper media dari Baileys
-import { prepareWAMessageMedia } from '@whiskeysockets/baileys'; 
+import { fileTypeFromBuffer } from 'file-type';
+
+// Konfigurasi Hamzz Cloud
+const HAMZZ_API_KEY = 'hk_98b17e926cbaa77b68d4caf3b509336078779e42e074f8bbd9487c797339b13f';
+const HAMZZ_API_URL = 'https://hamzz-cloud.vercel.app/api/upload';
 
 export default {
-    cmd: ['tourl', 'upload'],
-    tags: ['tools'],
+    cmd: ['tourl', 'upload', 'hamzz'],
+    tags: ['uploader'],
+    limit: true,
     run: async (sock, m, { prefix, command }) => {
-        const q = m.quoted ? m.quoted : m;
-        const mime = (q.msg || q).mimetype || '';
         
-        if (!mime) return m.reply(`*Format Salah!*\nBalas foto/video dengan perintah *${prefix + command}*`);
+        if (!m.quoted) {
+            return m.reply(`📌 *Cara Penggunaan:*\nReply gambar/video/dokumen dengan perintah *${prefix + command}*\n\nContoh: ${prefix + command} (reply ke media)`);
+        }
+
+        const mediaTypes = ['imageMessage', 'videoMessage', 'documentMessage', 'audioMessage', 'stickerMessage'];
+        const hasMedia = mediaTypes.includes(m.quoted.type);
+        
+        if (!hasMedia) {
+            return m.reply(`❌ *Format Salah!*\nHarap reply ke gambar, video, dokumen, audio, atau stiker.`);
+        }
 
         await m.react('⏳');
 
-        // Logic Ekstensi
-        let ext = mime.split('/')[1]; 
-        if (!ext || ext === 'plain') ext = 'txt'; 
-        
-        const tempFilePath = path.join(tmpdir(), `mimosa_${Date.now()}.${ext}`);
-        const buffer = await q.download();
-        fs.writeFileSync(tempFilePath, buffer);
-
         try {
-            // Siapkan Media Thumbnail Sekali Saja (Agar efisien)
-            // Menggunakan prepareWAMessageMedia yang benar
-            const mediaHeader = await prepareWAMessageMedia(
-                { image: { url: 'https://files.catbox.moe/2mq5qq.png' } }, 
-                { upload: sock.waUploadToServer }
-            );
-
-            // Upload Tasks
-            const uploadTasks = [];
-
-            // Task A: Catbox
-            uploadTasks.push(
-                CatBox(tempFilePath, ext).then(url => ({ provider: 'Catbox.moe', url }))
-            );
-
-            // Task B: Uguu
-            uploadTasks.push(
-                UploadFileUgu(tempFilePath, ext).then(res => ({ provider: 'Uguu.se', url: res.url }))
-            );
-
-            // Task C: Telegraph (Khusus Gambar)
-            if (mime.startsWith('image/')) {
-                uploadTasks.push(
-                    TelegraPh(tempFilePath).then(url => ({ provider: 'Telegra.ph', url }))
-                );
+            const mediaBuffer = await m.quoted.download();
+            
+            if (!mediaBuffer) {
+                throw new Error('Gagal mendownload media');
             }
 
-            const results = await Promise.allSettled(uploadTasks);
-            const cards = [];
-
-            for (const res of results) {
-                if (res.status === 'fulfilled') {
-                    const { provider, url } = res.value;
-                    
-                    cards.push({
-                        header: { 
-                            title: provider, 
-                            hasMediaAttachment: true,
-                            imageMessage: mediaHeader.imageMessage // Ambil properti imageMessage dari hasil prepare
-                        },
-                        body: { text: `✅ Berhasil diupload ke ${provider}` },
-                        footer: { text: 'Mimosa Multi-Device' },
-                        nativeFlowMessage: {
-                            buttons: [{
-                                name: 'cta_copy',
-                                buttonParamsJson: JSON.stringify({
-                                    display_text: 'Copy URL',
-                                    id: 'copy_url',
-                                    copy_code: url
-                                })
-                            }]
-                        }
-                    });
-                }
+            // Deteksi tipe file
+            const fileType = await fileTypeFromBuffer(mediaBuffer);
+            const ext = fileType?.ext || 'bin';
+            const mimeType = fileType?.mime || 'application/octet-stream';
+            
+            // Dapatkan nama file asli
+            let originalName = `file_${Date.now()}.${ext}`;
+            if (m.quoted.msg?.fileName) {
+                originalName = m.quoted.msg.fileName;
+            } else if (m.quoted.type === 'stickerMessage') {
+                originalName = `sticker_${Date.now()}.webp`;
+            }
+            
+            // Simpan ke file temporary
+            const tempFilePath = path.join(tmpdir(), `hamzz_${Date.now()}.${ext}`);
+            fs.writeFileSync(tempFilePath, mediaBuffer);
+            
+            // Hitung ukuran file
+            const fileSize = fs.statSync(tempFilePath).size;
+            const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+            
+            // Cek ukuran file (max 50MB)
+            if (fileSize > 50 * 1024 * 1024) {
+                fs.unlinkSync(tempFilePath);
+                return m.reply(`❌ *File terlalu besar!*\nMaksimal 50MB, file Anda ${fileSizeMB}MB`);
             }
 
-            if (cards.length === 0) throw new Error('Semua server gagal/down.');
+            // Upload ke Hamzz Cloud
+            const formData = new FormData();
+            formData.append('file', fs.createReadStream(tempFilePath), { filename: originalName });
+            formData.append('expiry', '7d');
 
-            // Kirim Carousel
+            const response = await axios.post(HAMZZ_API_URL, formData, {
+                headers: {
+                    ...formData.getHeaders(),
+                    'x-api-key': HAMZZ_API_KEY
+                },
+                timeout: 120000
+            });
+
+            const result = response.data;
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Upload failed');
+            }
+
+            const fullUrl = result.fullUrl || `https://hamzz-cloud.vercel.app/api/file/${result.fileId}`;
+            const expiryMessage = result.expiryMessage || 'File akan expired dalam 7 hari';
+
+            // Icon berdasarkan tipe
+            let fileIcon = '📄';
+            if (mimeType.startsWith('image/')) fileIcon = '🖼️';
+            else if (mimeType.startsWith('video/')) fileIcon = '🎥';
+            else if (mimeType.startsWith('audio/')) fileIcon = '🎵';
+            else if (mimeType === 'application/pdf') fileIcon = '📑';
+            else if (ext === 'webp') fileIcon = '🏷️';
+            
+            const successMessage = `${fileIcon} *Hamzz Cloud Uploader*
+            
+📁 *Nama:* ${originalName}
+📏 *Ukuran:* ${fileSizeMB} MB
+📱 *Tipe:* ${mimeType}
+⏱️ *Expiry:* ${expiryMessage}
+
+🔗 *URL:* ${fullUrl}
+
+> Powered by Hamzz Cloud | Mimosa Bot`;
+
             await sock.sendMessage(m.key.remoteJid, {
-                viewOnceMessage: {
-                    message: {
-                        interactiveMessage: {
-                            body: { text: `✨ *Upload Success!*\n\nTipe: ${mime}\nUkuran: ${(fs.statSync(tempFilePath).size / 1024 / 1024).toFixed(2)} MB` },
-                            carouselMessage: { cards }
-                        }
-                    }
-                }
+                text: successMessage
             }, { quoted: m });
 
             await m.react('✅');
+            
+            // Hapus file temporary
+            fs.unlinkSync(tempFilePath);
 
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            console.error('Upload error:', error);
             await m.react('❌');
-            m.reply(`❌ *Upload Gagal:* ${e.message}`);
-        } finally {
-            if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+            
+            let errorMsg = error.message;
+            if (error.response) {
+                errorMsg = error.response.data?.error || error.response.statusText;
+            }
+            
+            m.reply(`❌ *Upload Gagal ke Hamzz Cloud*\n\nDetail: ${errorMsg}\n\nCoba lagi nanti.`);
         }
     }
 };
-
-/* --- Fungsi Uploader (Tetap Sama) --- */
-
-async function CatBox(filePath, ext) {
-    const form = new FormData();
-    form.append('reqtype', 'fileupload');
-    form.append('fileToUpload', fs.createReadStream(filePath), { filename: `file.${ext}` });
-    const { data } = await axios.post('https://catbox.moe/user/api.php', form, { 
-        headers: { ...form.getHeaders(), 'User-Agent': 'Mozilla/5.0' } 
-    });
-    return data; 
-}
-
-async function UploadFileUgu(filePath, ext) {
-    const form = new FormData();
-    form.append('files[]', fs.createReadStream(filePath), { filename: `file.${ext}` });
-    const { data } = await axios.post('https://uguu.se/upload.php', form, { 
-        headers: { ...form.getHeaders(), 'User-Agent': 'Mozilla/5.0' } 
-    });
-    return data.files[0];
-}
-
-async function TelegraPh(filePath) {
-    const form = new FormData();
-    form.append('file', fs.createReadStream(filePath), { filename: 'image.jpg' });
-    const { data } = await axios.post('https://telegra.ph/upload', form, { 
-        headers: { ...form.getHeaders() } 
-    });
-    if (data.error) throw new Error(data.error);
-    return 'https://telegra.ph' + data[0].src;
-}
