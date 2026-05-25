@@ -2,7 +2,7 @@
 import { downloadContentFromMessage } from '@whiskeysockets/baileys';
 import { toSmallCaps } from '../../font.js';
 import webp from 'node-webpmux';
-import Jimp from 'jimp';
+import * as jimp from 'jimp';
 import fs from 'fs';
 import path from 'path';
 import { tmpdir } from 'os';

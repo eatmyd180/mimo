@@ -31,7 +31,7 @@ if (fs.existsSync(CONFIG.SENT_FILE)) {
         sentNotifications = new Set(data);
         console.log(`📋 Loaded ${sentNotifications.size} sent notifications`);
     } catch (e) {
-        console.error('Gagal load sent notifications:', e.message);
+        //console.error('Gagal load sent notifications:', e.message);
     }
 }
 
@@ -53,7 +53,7 @@ async function getPendingRegistrations() {
         const result = await response.json();
         return result.data || [];
     } catch (error) {
-        console.error('❌ Gagal ambil data dari web:', error.message);
+        //console.error('❌ Gagal ambil data dari web:', error.message);
         return [];
     }
 }
@@ -71,7 +71,7 @@ async function markAsSent(orderId) {
         });
         return response.ok;
     } catch (error) {
-        console.error(`❌ Gagal mark sent untuk ${orderId}:`, error.message);
+        //console.error(`❌ Gagal mark sent untuk ${orderId}:`, error.message);
         return false;
     }
 }
@@ -114,7 +114,7 @@ async function sendToAllPanitia(sock, message) {
             successCount++;
             console.log(`✅ Pesan terkirim ke ${nomor}`);
         } catch (error) {
-            console.error(`❌ Gagal kirim ke ${nomor}:`, error.message);
+            //console.error(`❌ Gagal kirim ke ${nomor}:`, error.message);
         }
     }
     
@@ -158,7 +158,7 @@ async function checkNewRegistrations(sock) {
             }
         }
     } catch (error) {
-        console.error('❌ Error checkNewRegistrations:', error);
+        //console.error('❌ Error checkNewRegistrations:', error);
     }
 }
 
