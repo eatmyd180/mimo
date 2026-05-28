@@ -180,9 +180,7 @@ mimo/
   <a href="https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27">
     <img src="https://img.shields.io/badge/WhatsApp_Channel-25D366?style=for-the-badge&logo=whatsapp">
   </a>
-  <a href="https://discord.gg/your-invite">
-    <img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white">
-  </a>
+  
 </p>
 
 ---
