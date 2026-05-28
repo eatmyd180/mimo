@@ -1,65 +1,129 @@
-import chalk from 'chalk'
-import { User, Group } from './database/schema.js'
-import { jidNormalizedUser, downloadContentFromMessage, getContentType, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
-import fs from 'fs'
-import path from 'path'
-import { fileTypeFromBuffer } from 'file-type'
-import axios from 'axios'
-import { exec } from 'child_process'
-import { promisify } from 'util'
+import chalk from 'chalk';
+import { User, Group } from './database/schema.js';
+import {
+    jidNormalizedUser,
+    downloadContentFromMessage,
+    getContentType,
+    generateWAMessageFromContent,
+    proto,
+    areJidsSameUser,
+} from '@whiskeysockets/baileys';
+import fs from 'fs';
+import path from 'path';
+import { fileTypeFromBuffer } from 'file-type';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
-const execAsync = promisify(exec)
+const execAsync = promisify(exec);
 
-const findValidJid = (obj) => {
-    if (!obj) return null
-    for (let key in obj) {
-        if (typeof obj[key] === 'string' && obj[key].endsWith('@s.whatsapp.net')) {
-            return obj[key]
+const normalizeJid = (jid) => {
+    if (!jid) return null;
+    return jid.replace(/:\d+@/, '@');
+};
+
+const extractNumber = (jid) => {
+    if (!jid) return null;
+    const normalized = normalizeJid(jid);
+    return normalized.split('@')[0].replace(/[^0-9]/g, '');
+};
+
+const getLidFromPn = async (sock, pnJid) => {
+    if (!pnJid) return null;
+    const normalizedPn = normalizeJid(pnJid);
+    
+    try {
+        const lid = await sock.signalRepository?.lidMapping?.getLIDForPN(normalizedPn);
+        if (lid) return normalizeJid(lid);
+    } catch (err) {}
+    
+    return null;
+};
+
+const getPnFromLid = async (sock, lidJid) => {
+    if (!lidJid) return null;
+    const normalizedLid = normalizeJid(lidJid);
+    
+    try {
+        const pn = await sock.signalRepository?.lidMapping?.getPNForLID(normalizedLid);
+        if (pn) return normalizeJid(pn);
+    } catch (err) {}
+    
+    return null;
+};
+
+const isAdminUser = async (sock, participants, jidToCheck) => {
+    if (!participants || !jidToCheck) return false;
+    
+    const normalizedCheck = normalizeJid(jidToCheck);
+    const checkNumber = extractNumber(jidToCheck);
+    
+    for (const p of participants) {
+        if (normalizeJid(p.id) === normalizedCheck) {
+            return p.admin === 'admin' || p.admin === 'superadmin';
         }
     }
-    return null
-}
+    
+    for (const p of participants) {
+        if (extractNumber(p.id) === checkNumber) {
+            return p.admin === 'admin' || p.admin === 'superadmin';
+        }
+    }
+    
+    const pnFromCheck = await getPnFromLid(sock, normalizedCheck);
+    if (pnFromCheck) {
+        for (const p of participants) {
+            const pPn = await getPnFromLid(sock, p.id);
+            if (pPn === pnFromCheck) {
+                return p.admin === 'admin' || p.admin === 'superadmin';
+            }
+        }
+    }
+    
+    const lidFromCheck = await getLidFromPn(sock, normalizedCheck);
+    if (lidFromCheck) {
+        for (const p of participants) {
+            if (normalizeJid(p.id) === lidFromCheck) {
+                return p.admin === 'admin' || p.admin === 'superadmin';
+            }
+        }
+    }
+    
+    return false;
+};
+
+const extractPhoneNumber = async (sock, jid) => {
+    if (!jid) return null;
+    
+    const normalizedJid = normalizeJid(jid);
+    const pn = await getPnFromLid(sock, normalizedJid);
+    
+    if (pn && pn.includes('@s.whatsapp.net')) {
+        return pn.split('@')[0];
+    }
+    
+    if (normalizedJid.includes('@s.whatsapp.net')) {
+        return normalizedJid.split('@')[0];
+    }
+    
+    return null;
+};
+
+const findValidJid = (obj) => {
+    if (!obj) return null;
+    for (let key in obj) {
+        if (typeof obj[key] === 'string' && obj[key].endsWith('@s.whatsapp.net')) {
+            return obj[key];
+        }
+    }
+    return null;
+};
 
 const parseMentions = (text) => {
-    let matches = text?.match(/@(\d{10,15})/g) || []
-    return matches.map(match => match.replace('@', '') + '@s.whatsapp.net')
-}
+    let matches = text?.match(/@(\d{10,15})/g) || [];
+    return matches.map(match => match.replace('@', '') + '@s.whatsapp.net');
+};
 
-const spamTracker = new Map()
-
-export const handler = async (sock, m, chatUpdate, store = {}) => {
-    try {
-        const rawSender = m.key.fromMe
-            ? sock.user.id
-            : (findValidJid(m.key) || m.key.participant || m.key.remoteJid)
-
-        const sender = jidNormalizedUser(rawSender)
-        const senderNumber = sender.split('@')[0]
-
-        const botId = jidNormalizedUser(sock.user.id)
-        const botNumber = botId.split('@')[0]
-
-        const isGroup = m.key.remoteJid.endsWith('@g.us')
-        if (m.key.remoteJid === 'status@broadcast') return
-
-        m.mtype = getContentType(m.message)
-        m.msg = m.mtype === 'viewOnceMessage' 
-            ? m.message[m.mtype].message[getContentType(m.message[m.mtype].message)]
-            : m.message[m.mtype]
-
-        const body = m.message?.conversation ||
-                    m.msg?.caption ||
-                    m.msg?.text ||
-                    ''
-
-        const isCmd = /^[°•π÷×¶∆£¢€¥®™+✓_=|~!?@#$%^&.©^]/gi.test(body)
-        const prefix = isCmd ? body[0] : ''
-        const command = isCmd ? body.slice(1).trim().split(' ').shift().toLowerCase() : ''
-        const args = body.trim().split(/ +/).slice(1)
-        const text = args.join(' ')
-        const pushName = m.pushName || 'User'
-        
-        // ==================== FAKE QUOTED ====================
+const spamTracker = new Map();
 
 global.fVerif = {
     key: {
@@ -67,32 +131,39 @@ global.fVerif = {
         participant: '0@s.whatsapp.net',
         remoteJid: 'status@broadcast'
     },
-
     message: {
-        conversation: ` © Powered by HamzzDev `
+        conversation: `© Powered by HamzzDev`
+    },
+    contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+            newsletterJid: '120363369878409989@newsletter',
+            serverMessageId: 101,
+            newsletterName: '✨ Mimosa Multi-Device »'
+        }
     }
-}
+};
 
 global.fkon = {
     key: {
         fromMe: false,
-        participant: sender,
+        participant: '0@s.whatsapp.net',
         remoteJid: 'status@broadcast'
     },
     message: {
         contactMessage: {
-            displayName: pushName,
-            vcard:
-`BEGIN:VCARD
+            displayName: 'Mimosa Bot',
+            vcard: `BEGIN:VCARD
 VERSION:3.0
-N:;${pushName},;;;
-FN:${pushName}
-item1.TEL;waid=${senderNumber}:${senderNumber}
+N:;Mimosa Bot;;;
+FN:Mimosa Bot
+item1.TEL;waid=0:0
 item1.X-ABLabel:Ponsel
 END:VCARD`
         }
     }
-}
+};
 
 global.fkontak2 = {
     key: {
@@ -100,28 +171,29 @@ global.fkontak2 = {
         participant: '0@s.whatsapp.net',
         remoteJid: 'status@broadcast'
     },
-
     message: {
         productMessage: {
             product: {
                 productImage: {
-                    jpegThumbnail: fs.readFileSync('./src/mimosa.png')
+                    jpegThumbnail: (() => {
+                        try {
+                            return fs.readFileSync('./src/mimosa.png');
+                        } catch {
+                            return null;
+                        }
+                    })()
                 },
-
                 title: 'MIMOSA BOT',
                 description: 'Simple • Fast • Secure',
-
                 currencyCode: 'IDR',
                 priceAmount1000: '999999999',
-
                 retailerId: 'MIMOSA',
                 productImageCount: 1
             },
-
             businessOwnerJid: '0@s.whatsapp.net'
         }
     }
-}
+};
 
 global.fdoc = {
     key: {
@@ -134,9 +206,8 @@ global.fdoc = {
             jpegThumbnail: null
         }
     }
-}
+};
 
-// Fake Newsletter / Channel
 global.fkontak = {
     contextInfo: {
         forwardingScore: 999,
@@ -147,138 +218,170 @@ global.fkontak = {
             newsletterName: '« ✨ Mimosa Multi-Device »'
         }
     }
-}
+};
 
-        m.mentionedJid = m.msg?.contextInfo?.mentionedJid || []
+export const handler = async (sock, m, chatUpdate, store = {}) => {
+    try {
+        const rawSender = m.key.fromMe
+            ? sock.user.id
+            : (findValidJid(m.key) || m.key.participant || m.key.remoteJid);
+
+        const sender = jidNormalizedUser(rawSender);
+        const senderJid = sender;
+
+        const botJid = jidNormalizedUser(sock.user.id);
+
+        const isGroup = m.key.remoteJid.endsWith('@g.us');
+        if (m.key.remoteJid === 'status@broadcast') return;
+
+        const senderNumber = await extractPhoneNumber(sock, sender) || extractNumber(sender);
+        const botNumber = await extractPhoneNumber(sock, botJid) || extractNumber(botJid);
+
+        m.mtype = getContentType(m.message);
+        m.msg = m.mtype === 'viewOnceMessage'
+            ? m.message[m.mtype].message[getContentType(m.message[m.mtype].message)]
+            : m.message[m.mtype];
+
+        const body = m.message?.conversation ||
+            m.msg?.caption ||
+            m.msg?.text ||
+            '';
+
+        const isCmd = /^[°•π÷×¶∆£¢€¥®™+✓_=|~!?#$%^&.©^]/gi.test(body);
+        const prefix = isCmd ? body[0] : '';
+        const command = isCmd ? body.slice(1).trim().split(' ').shift().toLowerCase() : '';
+        const args = body.trim().split(/ +/).slice(1);
+        const text = args.join(' ');
+        const pushName = m.pushName || 'User';
+
+        m.mentionedJid = m.msg?.contextInfo?.mentionedJid || [];
 
         m.react = async (emoji) => {
             try {
                 await sock.sendMessage(m.key.remoteJid, {
                     react: { text: emoji, key: m.key }
-                })
+                });
             } catch (error) {
-                console.error('React Error:', error)
-            }
-        }
-
-        m.reply = async (content, options = {}) => {
-    try {
-        // Baca thumbnail dari file lokal src/mimosa.png
-        const thumbPath = path.join(process.cwd(), 'src', 'mimosa.png');
-        let thumbBuffer = null;
-        try {
-            thumbBuffer = fs.readFileSync(thumbPath);
-        } catch (err) {}
-
-        // Utamakan global.fkon sebagai quoted
-        const quotedMsg = global.fkon || options.quoted || m;
-        
-        // Forward newsletter config
-        const newsletterConfig = {
-            forwardingScore: 999,
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-                newsletterJid: '120363369878409989@newsletter',
-                serverMessageId: Math.floor(Math.random() * 1000),
-                newsletterName: '✨ Mimosa Multi-Device »'
+                console.error('React Error:', error);
             }
         };
-        
-        if (typeof content === 'string') {
-            return sock.sendMessage(m.key.remoteJid, {
-                text: content,
-                mentions: parseMentions(content),
-                contextInfo: {
-                    ...newsletterConfig,
-                    externalAdReply: options.externalAdReply || (global.externalAd?.enabled ? {
-                        title: global.externalAd.title || global.botName,
-                        body: global.externalAd.body || global.footer,
-                        thumbnail: thumbBuffer,
-                        thumbnailUrl: thumbBuffer ? undefined : global.externalAd.thumbnail,
-                        sourceUrl: global.externalAd.sourceUrl,
-                        mediaType: 1,
-                        renderLargerThumbnail: true
-                    } : undefined)
-                },
-                ...options
-            }, { quoted: quotedMsg })
-        } 
-        else if (Buffer.isBuffer(content)) {
-            const type = await fileTypeFromBuffer(content)
-            if (type?.mime?.startsWith('image/')) {
-                return sock.sendMessage(m.key.remoteJid, {
-                    image: content,
-                    caption: options.caption || '',
-                    contextInfo: {
-                        ...newsletterConfig,
-                        externalAdReply: options.externalAdReply ? undefined : {
-                            title: 'MIMOSA BOT',
-                            body: 'Simple • Fast • Secure',
-                            thumbnail: thumbBuffer,
-                            sourceUrl: 'https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27',
-                            mediaType: 1,
-                            renderLargerThumbnail: true
-                        }
-                    },
-                    ...options
-                }, { quoted: quotedMsg })
-            } 
-            else if (type?.mime?.startsWith('video/')) {
-                return sock.sendMessage(m.key.remoteJid, {
-                    video: content,
-                    caption: options.caption || '',
-                    contextInfo: {
-                        ...newsletterConfig,
-                        gifPlayback: options.gifPlayback || false,
-                        externalAdReply: options.externalAdReply ? undefined : {
-                            title: 'MIMOSA BOT',
-                            body: 'Simple • Fast • Secure',
-                            thumbnail: thumbBuffer,
-                            sourceUrl: 'https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27',
-                            mediaType: 1,
-                            renderLargerThumbnail: true
-                        }
-                    },
-                    ...options
-                }, { quoted: quotedMsg })
-            } 
-            else {
-                return sock.sendMessage(m.key.remoteJid, {
-                    document: content,
-                    mimetype: type?.mime || 'application/octet-stream',
-                    fileName: options.filename || `file.${type?.ext || 'bin'}`,
-                    caption: options.caption || '',
-                    contextInfo: newsletterConfig,
-                    ...options
-                }, { quoted: quotedMsg })
-            }
-        } 
-        else if (typeof content === 'object') {
-            return sock.sendMessage(m.key.remoteJid, content, { 
-                quoted: quotedMsg, 
-                contextInfo: newsletterConfig,
-                ...options 
-            })
-        }
-    } catch (e) {
-        console.error('Reply Error:', e)
-        return sock.sendMessage(m.key.remoteJid, { text: 'Error: ' + e.message }, { quoted: global.fkon || m })
-    }
-}
 
-        // ==================== PERBAIKAN QUOTED MESSAGE DENGAN TEXT ====================
+        m.reply = async (content, options = {}) => {
+            try {
+                const thumbPath = path.join(process.cwd(), 'src', 'mimosa.png');
+                let thumbBuffer = null;
+                try {
+                    thumbBuffer = fs.readFileSync(thumbPath);
+                } catch (err) { }
+
+                const quotedMsg = global.fkon || options.quoted || m;
+
+                const newsletterConfig = {
+                    forwardingScore: 999,
+                    isForwarded: true,
+                    forwardedNewsletterMessageInfo: {
+                        newsletterJid: '120363369878409989@newsletter',
+                        serverMessageId: Math.floor(Math.random() * 1000),
+                        newsletterName: '✨ Mimosa Multi-Device »'
+                    }
+                };
+
+                if (typeof content === 'string') {
+                    return sock.sendMessage(m.key.remoteJid, {
+                        text: content,
+                        mentions: parseMentions(content),
+                        contextInfo: {
+                            ...newsletterConfig,
+                            externalAdReply: options.externalAdReply || (global.externalAd?.enabled ? {
+                                title: global.externalAd.title || global.botName,
+                                body: global.externalAd.body || global.footer,
+                                thumbnail: thumbBuffer,
+                                thumbnailUrl: thumbBuffer ? undefined : global.externalAd.thumbnail,
+                                sourceUrl: global.externalAd.sourceUrl,
+                                mediaType: 1,
+                                renderLargerThumbnail: true
+                            } : undefined)
+                        },
+                        ...options
+                    }, { quoted: quotedMsg });
+                }
+
+                else if (Buffer.isBuffer(content)) {
+                    const type = await fileTypeFromBuffer(content);
+
+                    if (type?.mime?.startsWith('image/')) {
+                        return sock.sendMessage(m.key.remoteJid, {
+                            image: content,
+                            caption: options.caption || '',
+                            contextInfo: {
+                                ...newsletterConfig,
+                                externalAdReply: options.externalAdReply ? undefined : {
+                                    title: 'MIMOSA BOT',
+                                    body: 'Simple • Fast • Secure',
+                                    thumbnail: thumbBuffer,
+                                    sourceUrl: 'https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27',
+                                    mediaType: 1,
+                                    renderLargerThumbnail: true
+                                }
+                            },
+                            ...options
+                        }, { quoted: quotedMsg });
+                    }
+                    else if (type?.mime?.startsWith('video/')) {
+                        return sock.sendMessage(m.key.remoteJid, {
+                            video: content,
+                            caption: options.caption || '',
+                            contextInfo: {
+                                ...newsletterConfig,
+                                gifPlayback: options.gifPlayback || false,
+                                externalAdReply: options.externalAdReply ? undefined : {
+                                    title: 'MIMOSA BOT',
+                                    body: 'Simple • Fast • Secure',
+                                    thumbnail: thumbBuffer,
+                                    sourceUrl: 'https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27',
+                                    mediaType: 1,
+                                    renderLargerThumbnail: true
+                                }
+                            },
+                            ...options
+                        }, { quoted: quotedMsg });
+                    }
+                    else {
+                        return sock.sendMessage(m.key.remoteJid, {
+                            document: content,
+                            mimetype: type?.mime || 'application/octet-stream',
+                            fileName: options.filename || `file.${type?.ext || 'bin'}`,
+                            caption: options.caption || '',
+                            contextInfo: newsletterConfig,
+                            ...options
+                        }, { quoted: quotedMsg });
+                    }
+                }
+
+                else if (typeof content === 'object') {
+                    return sock.sendMessage(m.key.remoteJid, content, {
+                        quoted: quotedMsg,
+                        contextInfo: newsletterConfig,
+                        ...options
+                    });
+                }
+            } catch (e) {
+                console.error('Reply Error:', e);
+                return sock.sendMessage(m.key.remoteJid, { text: 'Error: ' + e.message }, { quoted: global.fkon || m });
+            }
+        };
+
         if (m.msg?.contextInfo?.quotedMessage) {
-            const quotedMessage = m.msg.contextInfo.quotedMessage
-            const quotedType = getContentType(quotedMessage)
-            const quotedContent = quotedMessage[quotedType]
-            
-            const quotedSender = jidNormalizedUser(m.msg.contextInfo.participant || m.key.participant || m.key.remoteJid)
-            const quotedId = m.msg.contextInfo.stanzaId
-            const quotedChat = m.msg.contextInfo.remoteJid || m.key.remoteJid
-            
-            // Ambil text dari berbagai kemungkinan
+            const quotedMessage = m.msg.contextInfo.quotedMessage;
+            const quotedType = getContentType(quotedMessage);
+            const quotedContent = quotedMessage[quotedType];
+
+            const quotedSender = jidNormalizedUser(m.msg.contextInfo.participant || m.key.participant || m.key.remoteJid);
+            const quotedId = m.msg.contextInfo.stanzaId;
+            const quotedChat = m.msg.contextInfo.remoteJid || m.key.remoteJid;
+
             let quotedText = '';
-            
+
             if (quotedType === 'conversation') {
                 quotedText = quotedContent || '';
             } else if (quotedType === 'extendedTextMessage') {
@@ -292,7 +395,7 @@ global.fkontak = {
             } else {
                 quotedText = quotedContent?.text || quotedContent?.caption || quotedContent?.description || '';
             }
-            
+
             m.quoted = {
                 id: quotedId,
                 chat: quotedChat,
@@ -303,36 +406,36 @@ global.fkontak = {
                 text: quotedText,
                 message: quotedMessage,
                 mentionedJid: quotedContent?.contextInfo?.mentionedJid || [],
-                
+
                 key: {
                     remoteJid: quotedChat,
                     fromMe: quotedSender === jidNormalizedUser(sock.user.id),
                     id: quotedId,
                     participant: quotedSender
                 },
-                
+
                 download: async (filename = null) => {
                     try {
-                        const mediaType = quotedType.replace('Message', '')
-                        const stream = await downloadContentFromMessage(quotedContent, mediaType)
-                        let buffer = Buffer.from([])
+                        const mediaType = quotedType.replace('Message', '');
+                        const stream = await downloadContentFromMessage(quotedContent, mediaType);
+                        let buffer = Buffer.from([]);
                         for await (const chunk of stream) {
-                            buffer = Buffer.concat([buffer, chunk])
+                            buffer = Buffer.concat([buffer, chunk]);
                         }
-                        
+
                         if (filename) {
-                            const type = await fileTypeFromBuffer(buffer)
-                            const filePath = path.join(process.cwd(), filename + '.' + (type?.ext || 'bin'))
-                            fs.writeFileSync(filePath, buffer)
-                            return filePath
+                            const type = await fileTypeFromBuffer(buffer);
+                            const filePath = path.join(process.cwd(), filename + '.' + (type?.ext || 'bin'));
+                            fs.writeFileSync(filePath, buffer);
+                            return filePath;
                         }
-                        return buffer
+                        return buffer;
                     } catch (e) {
-                        console.error('Quoted Download Error:', e)
-                        throw e
+                        console.error('Quoted Download Error:', e);
+                        throw e;
                     }
                 },
-                
+
                 delete: () => {
                     const vM = proto.WebMessageInfo.fromObject({
                         key: {
@@ -340,35 +443,40 @@ global.fkontak = {
                             fromMe: quotedSender === jidNormalizedUser(sock.user.id),
                             id: quotedId
                         }
-                    })
-                    return sock.sendMessage(quotedChat, { delete: vM.key })
+                    });
+                    return sock.sendMessage(quotedChat, { delete: vM.key });
                 },
-                
+
                 reply: async (content, options = {}) => {
                     return sock.sendMessage(quotedChat, {
                         text: content,
                         ...options
-                    }, { quoted: m.quoted })
+                    }, { quoted: m.quoted });
                 }
-            }
-            
-            if (quotedType === 'imageMessage' || quotedType === 'videoMessage' || quotedType === 'audioMessage' || quotedType === 'stickerMessage') {
-                m.quoted.media = quotedContent
+            };
+
+            if (['imageMessage', 'videoMessage', 'audioMessage', 'stickerMessage'].includes(quotedType)) {
+                m.quoted.media = quotedContent;
             }
         } else {
-            m.quoted = null
+            m.quoted = null;
         }
 
         const ownerConfig = global.owner
             .map(v => (Array.isArray(v) ? v[0] : v))
-            .map(v => v.replace(/[^0-9]/g, ''))
+            .map(v => v.replace(/[^0-9]/g, ''));
 
-        const isOwner = m.key.fromMe || ownerConfig.includes(senderNumber)
+        const isOwner = m.key.fromMe || ownerConfig.includes(senderNumber);
 
-        let user = await User.findOne({ phoneNumber: sender })
+        let user = await User.findOne({ jid: senderJid });
+        if (!user) {
+            user = await User.findOne({ phoneNumber: senderNumber });
+        }
+        
         if (!user) {
             user = new User({
-                phoneNumber: sender,
+                jid: senderJid,
+                phoneNumber: senderNumber,
                 name: pushName,
                 limit: global.limit?.default || 20,
                 premium: isOwner,
@@ -376,87 +484,89 @@ global.fkontak = {
                 premiumTime: 0,
                 banned: false,
                 warning: 0
-            })
-            await user.save()
+            });
+            await user.save();
+        } else if (!user.jid) {
+            user.jid = senderJid;
+            await user.save();
         }
 
         if (user.banned) {
-            if (isCmd) await m.reply('🚫 Kamu telah dibanned!')
-            return
+            if (isCmd) await m.reply('🚫 Kamu telah dibanned!');
+            return;
         }
 
         if (user.premium && user.premiumTime !== 0 && Date.now() > user.premiumTime) {
-            user.premium = false
-            user.premiumTime = 0
-            await user.save()
-            await m.reply('🔔 Masa Premium kamu telah berakhir.')
+            user.premium = false;
+            user.premiumTime = 0;
+            await user.save();
+            await m.reply('🔔 Masa Premium kamu telah berakhir.');
         }
 
         if (global.maintenance && !isOwner) {
-            if (isCmd) await m.reply('🔧 Maintenance mode')
-            return
+            if (isCmd) await m.reply('🔧 Maintenance mode');
+            return;
         }
 
         if (global.antiSpam && !isOwner && !user.premium) {
-            const now = Date.now()
-            const userSpam = spamTracker.get(sender) || { count: 0, lastMsg: 0 }
-            
+            const now = Date.now();
+            const userSpam = spamTracker.get(sender) || { count: 0, lastMsg: 0 };
+
             if (now - userSpam.lastMsg < 1000) {
-                userSpam.count++
+                userSpam.count++;
                 if (userSpam.count > (global.antiSpamConfig?.maxPerSecond || 5)) {
-                    user.warning++
-                    await user.save()
-                    
+                    user.warning++;
+                    await user.save();
+
                     if (user.warning >= (global.antiSpamConfig?.warningCount || 3)) {
-                        user.banned = true
-                        await user.save()
-                        await m.reply('🚫 Kamu telah dibanned karena spam!')
-                        return
+                        user.banned = true;
+                        await user.save();
+                        await m.reply('🚫 Kamu telah dibanned karena spam!');
+                        return;
                     } else {
-                        await m.reply(`⚠️ Warning ${user.warning}/3: Jangan spam!`)
+                        await m.reply(`⚠️ Warning ${user.warning}/3: Jangan spam!`);
                     }
                 }
             } else {
-                userSpam.count = 1
+                userSpam.count = 1;
             }
-            
-            userSpam.lastMsg = now
-            spamTracker.set(sender, userSpam)
+
+            userSpam.lastMsg = now;
+            spamTracker.set(sender, userSpam);
         }
 
-        // ==================== EVAL COMMAND ====================
         if (isOwner) {
             const firstChar = body.charAt(0);
             const isEvalCommand = firstChar === '>' || firstChar === '$';
             const isAsyncEval = body.startsWith('>>');
-            
+
             if (isEvalCommand || isAsyncEval) {
                 try {
                     let evalCommand = isAsyncEval ? '>>' : firstChar;
                     let evalCode = isAsyncEval ? body.substring(2).trim() : body.substring(1).trim();
-                    
+
                     if (!evalCode && evalCommand !== '>') {
                         return m.reply(`*Cara penggunaan:*\n${evalCommand} <kode>`);
                     }
-                    
+
                     await m.react('⏳');
-                    
+
                     const util = await import('util');
                     const { exec } = await import('child_process');
-                    
+
                     if (evalCommand === '>' || evalCommand === '>>') {
                         let result;
-                        
+
                         const context = {
                             sock, m, util: util.default,
                             sender, senderNumber, botNumber, isGroup, pushName,
                             $user: user,
                             fs, path
                         };
-                        
+
                         const contextKeys = Object.keys(context);
                         const contextValues = Object.values(context);
-                        
+
                         if (evalCommand === '>>') {
                             const asyncFn = new Function(...contextKeys, `
                                 return (async () => {
@@ -478,15 +588,15 @@ global.fkontak = {
                             `);
                             result = syncFn(...contextValues);
                         }
-                        
-                        const output = util.default.inspect(result, { 
-                            depth: 3, 
+
+                        const output = util.default.inspect(result, {
+                            depth: 3,
                             colors: false,
                             maxArrayLength: 50
                         });
-                        
+
                         await m.react('✅');
-                        
+
                         if (output.length > 4000) {
                             await sock.sendMessage(m.key.remoteJid, {
                                 document: Buffer.from(output, 'utf-8'),
@@ -498,7 +608,7 @@ global.fkontak = {
                             await m.reply(`📦 *Output:*\n\`\`\`${output}\`\`\``);
                         }
                     }
-                    
+
                     else if (evalCommand === '$') {
                         exec(evalCode, {
                             timeout: 15000,
@@ -506,14 +616,14 @@ global.fkontak = {
                             shell: true
                         }, async (error, stdout, stderr) => {
                             let output = '';
-                            
+
                             if (error) output += `❌ *Error:* ${error.message}\n`;
                             if (stderr) output += `⚠️ *Stderr:*\n${stderr}\n`;
                             if (stdout) output += `✅ *Stdout:*\n${stdout}`;
                             if (!output) output = '✅ Command executed (no output)';
-                            
+
                             await m.react('✅');
-                            
+
                             if (output.length > 4000) {
                                 await sock.sendMessage(m.key.remoteJid, {
                                     document: Buffer.from(output, 'utf-8'),
@@ -525,7 +635,7 @@ global.fkontak = {
                             }
                         });
                     }
-                    
+
                     return;
                 } catch (error) {
                     console.error('Eval Error:', error);
@@ -536,40 +646,56 @@ global.fkontak = {
             }
         }
 
-// ==================== PLUGIN ALL (Auto Respon Tanpa Command) ====================
-for (let plugin of Object.values(global.plugins)) {
-    if (!plugin) continue
-    if (typeof plugin.all === 'function') {
-        try {
-            await plugin.all(sock, m, {
-                body,
-                isCmd,
-                command,
-                prefix,
-                args,
-                text,
-                user,
-                isGroup,
-                sender,
-                senderNumber,
-                botNumber,
-                isOwner,
-                pushName,
-                store
-            })
-        } catch (e) {
-            console.error(chalk.bgRed.white('[ALL PLUGIN ERROR]'), e)
+        let groupMetadata = null;
+        let isAdmin = false;
+        let isBotAdmin = false;
+
+        if (isGroup) {
+            groupMetadata = await sock.groupMetadata(m.key.remoteJid);
+            
+            isAdmin = await isAdminUser(sock, groupMetadata.participants, senderJid) || isOwner;
+            isBotAdmin = await isAdminUser(sock, groupMetadata.participants, botJid);
         }
-    }
-}
-// ==================== END PLUGIN ALL ====================
+
+        for (let plugin of Object.values(global.plugins)) {
+            if (!plugin) continue;
+            if (typeof plugin.all === 'function') {
+                try {
+                    if (plugin.__reloading) continue;
+                    
+                    await plugin.all(sock, m, {
+                        body,
+                        isCmd,
+                        command,
+                        prefix,
+                        args,
+                        text,
+                        user,
+                        isGroup,
+                        sender: senderJid,
+                        senderNumber,
+                        botNumber,
+                        isOwner,
+                        pushName,
+                        store,
+                        isAdmin,
+                        isBotAdmin
+                    });
+                } catch (e) {
+                    if (e.message?.includes('is not a function')) continue;
+                    console.error(chalk.bgRed.white('[ALL PLUGIN ERROR]'), e);
+                }
+            }
+        }
 
         const beforePlugins = Object.values(global.plugins)
             .filter(p => typeof p?.before === 'function')
-            .sort((a, b) => (a.priority ?? 10) - (b.priority ?? 10))
+            .sort((a, b) => (a.priority ?? 10) - (b.priority ?? 10));
 
         for (let plugin of beforePlugins) {
             try {
+                if (plugin.__reloading) continue;
+                
                 const stop = await plugin.before(sock, m, {
                     body,
                     isCmd,
@@ -579,34 +705,37 @@ for (let plugin of Object.values(global.plugins)) {
                     text,
                     user,
                     isGroup,
-                    sender,
+                    sender: senderJid,
                     senderNumber,
                     botNumber,
                     isOwner,
                     pushName,
-                    store
-                })
+                    store,
+                    isAdmin,
+                    isBotAdmin
+                });
 
-                if (stop) return
+                if (stop) return;
             } catch (e) {
-                console.error(chalk.bgRed.white('[BEFORE ERROR]'), plugin.cmd || plugin.name || 'unknown', e)
+                if (e.message?.includes('is not a function')) continue;
+                console.error(chalk.bgRed.white('[BEFORE ERROR]'), plugin.cmd || plugin.name || 'unknown', e);
             }
         }
 
         if (isCmd && global.logging?.commands) {
-            console.log(chalk.bgMagenta.white('[CMD]'), chalk.green(command))
-            console.log(chalk.cyan(`   ├─ Sender : ${sender}`))
-            console.log(chalk.cyan(`   ├─ Group  : ${isGroup ? 'Yes' : 'No'}`))
-            console.log(chalk.cyan(`   └─ IsOwner: ${isOwner}`))
+            console.log(chalk.bgMagenta.white('[CMD]'), chalk.green(command));
+            console.log(chalk.cyan(`   ├─ Sender : ${normalizeJid(senderJid)}`));
+            console.log(chalk.cyan(`   ├─ Group  : ${isGroup ? 'Yes' : 'No'}`));
+            console.log(chalk.cyan(`   └─ IsOwner: ${isOwner}`));
         }
 
-        // ==================== PLUGIN RUNNER ====================
         if (isCmd && command) {
             let executed = false;
-            
+
             for (let plugin of Object.values(global.plugins)) {
-                if (!plugin) continue
-if (!plugin.cmd && !plugin.before) continue
+                if (!plugin) continue;
+                if (!plugin.cmd && !plugin.before) continue;
+                if (plugin.__reloading) continue;
 
                 const isMatch = Array.isArray(plugin.cmd)
                     ? plugin.cmd.includes(command)
@@ -614,68 +743,53 @@ if (!plugin.cmd && !plugin.before) continue
 
                 if (!isMatch) continue;
                 if (executed) break;
-                
-                let isAdmin = false
-                let isBotAdmin = false
-                let groupMetadata = null
-
-                if (isGroup) {
-                    groupMetadata = await sock.groupMetadata(m.key.remoteJid)
-                    const admins = groupMetadata.participants
-                        .filter(p => p.admin)
-                        .map(p => jidNormalizedUser(p.id).split('@')[0])
-
-                    isAdmin = admins.includes(senderNumber)
-                    isBotAdmin = admins.includes(botNumber)
-                }
 
                 if (plugin.hidden && !isOwner) {
-                    await m.reply('🚧 Fitur dalam perbaikan')
+                    await m.reply('🚧 Fitur dalam perbaikan');
                     executed = true;
                     break;
                 }
                 if (plugin.ownerOnly && !isOwner) {
-                    await m.reply('❌ Khusus Owner!')
+                    await m.reply('❌ Khusus Owner!');
                     executed = true;
                     break;
                 }
                 if (plugin.groupOnly && !isGroup) {
-                    await m.reply('❌ Khusus Grup!')
+                    await m.reply('❌ Khusus Grup!');
                     executed = true;
                     break;
                 }
                 if (plugin.adminOnly && !isAdmin && !isOwner) {
-                    await m.reply('❌ Khusus Admin!')
+                    await m.reply('❌ Khusus Admin Grup!');
                     executed = true;
                     break;
                 }
                 if (plugin.botAdmin && !isBotAdmin) {
-                    await m.reply('❌ Bot harus jadi Admin!')
+                    await m.reply('❌ Bot harus menjadi admin grup terlebih dahulu!\n\nCara: Jadikan bot sebagai admin grup melalui pengaturan grup WhatsApp.');
                     executed = true;
                     break;
                 }
                 if (plugin.register && !user.registered) {
-                    await m.reply(`❌ Kamu belum terdaftar! Ketik *${prefix}register nama*`)
+                    await m.reply(`❌ Kamu belum terdaftar! Ketik *${prefix}register nama*`);
                     executed = true;
                     break;
                 }
                 if (plugin.premium && !isOwner && !user.premium) {
-                    await m.reply('❌ Khusus Premium!')
+                    await m.reply('❌ Khusus Premium!');
                     executed = true;
                     break;
                 }
                 if (plugin.limit && !isOwner && !user.premium) {
                     if (user.limit < 1) {
-                        await m.reply('❌ Limit habis!')
+                        await m.reply('❌ Limit habis!');
                         executed = true;
                         break;
                     }
-                    user.limit -= 1
-                    await user.save()
+                    user.limit -= 1;
+                    await user.save();
                 }
 
                 try {
-                    const start = Date.now()
                     await plugin.run(sock, m, {
                         text,
                         args,
@@ -686,37 +800,43 @@ if (!plugin.cmd && !plugin.before) continue
                         isAdmin,
                         isBotAdmin,
                         isOwner,
-                        sender,
+                        sender: senderJid,
                         senderNumber,
                         pushName,
                         groupMetadata,
-                        store
-                    })
-                    
+                        store,
+                        participants: groupMetadata?.participants || []
+                    });
+
                     executed = true;
                     break;
-                    
+
                 } catch (e) {
-                    console.error(`[PLUGIN ERROR] ${command}:`, e)
-                    await sock.sendMessage(m.key.remoteJid, { text: `❌ Error: ${e.message}` }, { quoted: m })
+                    if (e.message?.includes('is not a function')) {
+                        console.log(chalk.yellow(`⚠️ Plugin ${command} sedang direload, skip`));
+                        executed = true;
+                        break;
+                    }
+                    console.error(`[PLUGIN ERROR] ${command}:`, e);
+                    await sock.sendMessage(m.key.remoteJid, { text: `❌ Error: ${e.message}` }, { quoted: m });
                     executed = true;
                     break;
                 }
             }
-            
+
             if (!executed && isCmd) {
-                await m.reply(`❌ Command "${command}" tidak ditemukan! Ketik .menu`)
+                await m.reply(`❌ Command "${command}" tidak ditemukan! Ketik .menu`);
             }
         }
 
     } catch (err) {
-        console.error('Handler Error:', err)
+        console.error('Handler Error:', err);
     }
-}
+};
 
-const __filename = new URL(import.meta.url).pathname
+const __filename = new URL(import.meta.url).pathname;
 fs.watchFile(__filename, () => {
-    fs.unwatchFile(__filename)
-    console.log(chalk.redBright(`🔄 ${__filename} updated, reloading...`))
-    import(`${__filename}?update=${Date.now()}`)
-})
+    fs.unwatchFile(__filename);
+    console.log(chalk.redBright(`🔄 ${__filename} updated, reloading...`));
+    import(`${__filename}?update=${Date.now()}`);
+});

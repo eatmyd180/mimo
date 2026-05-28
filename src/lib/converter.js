@@ -217,8 +217,32 @@ async function webpToGif(webpBuffer) {
         throw err;
     }
 }
+// Di dalam converter.js, tambahkan fungsi ini
 
-// ==================== EXPORTS ====================
+// ==================== WEBP TO IMAGE (PNG/JPG) ====================
+async function webpToImage(webpBuffer, format = 'png') {
+    try {
+        console.log('Converting webp to image, buffer size:', webpBuffer.length);
+        
+        // Deteksi apakah animated webp
+        const hexHeader = webpBuffer.toString('hex', 0, 20);
+        const isAnimated = hexHeader.includes('414e494d');
+        console.log('Is animated webp:', isAnimated);
+        
+        const args = [
+            '-vframes', '1',      // Ambil frame pertama
+            '-q:v', '2'           // Kualitas tinggi
+        ];
+        
+        const result = await ffmpeg(webpBuffer, args, 'webp', format);
+        console.log('Conversion success, result size:', result.length);
+        return result;
+    } catch (err) {
+        console.error('webpToImage error:', err);
+        throw err;
+    }
+}
+
 export {
     // Audio
     toPTT,
@@ -235,7 +259,8 @@ export {
     sticker,
     // Webp to MP4/GIF
     webpToMp4,
-    webpToGif
+    webpToGif,
+    webpToImage
 };
 
 // Auto reload
