@@ -1,235 +1,218 @@
-<div align="center">
+<div align="center">🌸 MIMOSA MULTI-DEVICE 🌸</div>
 
-<img src="src/mimosa.png" width="150" height="150">
+<div align="center"><img src="src/mimosa.png" width="220" height="220" /><br><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=30&pause=1000&color=F7A8C4&center=true&vCenter=true&random=false&width=600&lines=WhatsApp+Bot+Multi-Device;Fast+%E2%9A%A1+Secure+%F0%9F%94%92+Modern+%F0%9F%9A%80;Built+with+Baileys;Created+by+HamzzDev" /><br><br>
 
-<br/>
+<img src="https://img.shields.io/github/stars/eatmyd180/mimo?style=for-the-badge&color=F7A8C4">
+<img src="https://img.shields.io/github/forks/eatmyd180/mimo?style=for-the-badge&color=ff69b4">
+<img src="https://img.shields.io/github/license/eatmyd180/mimo?style=for-the-badge&color=blue">
+<img src="https://img.shields.io/badge/Node.js-20.x-3C873A?style=for-the-badge&logo=node.js&logoColor=white"></div>---
 
-<img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=900&size=38&duration=3000&pause=800&color=F7A8C4&center=true&vCenter=true&width=600&lines=MIMOSA+BOT+🌸;Multi-Device+WhatsApp;Fast+%7C+Secure+%7C+Powerful" alt="Mimosa" />
+🌷 About Project
 
-<br/>
+Mimosa Multi-Device is a modern WhatsApp bot built using Baileys with support for Multi-Device connections.
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=16&duration=2500&pause=1000&color=A8D8EA&center=true&vCenter=true&width=500&lines=Built+with+Baileys+%F0%9F%94%A5;Always+Updated+%E2%9C%A8;Made+by+HamzzDev+%E2%98%95" alt="Subtitle" />
+Designed to be:
 
-<br/><br/>
+- ⚡ Fast
+- 🔒 Secure
+- 🎨 Easy to Customize
+- 🚀 Stable for Deployment
+- 📦 Lightweight & Modern
 
-<img src="https://img.shields.io/badge/Version-7.0.0-F7A8C4?style=for-the-badge&labelColor=2d0a1e&logo=github&logoColor=F7A8C4">
-<img src="https://img.shields.io/badge/Node.js-20.x-A8D8EA?style=for-the-badge&labelColor=0a1e2d&logo=nodedotjs&logoColor=A8D8EA">
-<img src="https://img.shields.io/badge/License-MIT-C9F0A8?style=for-the-badge&labelColor=0a2d0a&logoColor=C9F0A8">
-<img src="https://img.shields.io/badge/Status-Active%20🟢-FFE4A8?style=for-the-badge&labelColor=2d1e0a">
-
-<br/><br/>
-
-<a href="#-instalasi">Instalasi</a> &nbsp;•&nbsp;
-<a href="#-fitur-unggulan">Fitur</a> &nbsp;•&nbsp;
-<a href="#-deployment">Deploy</a> &nbsp;•&nbsp;
-<a href="#-author">Author</a>
-
-</div>
-
-<br/>
+Perfect for personal bots, communities, and advanced WhatsApp automation.
 
 ---
 
-## 🌸 Overview
+✨ Main Features
 
-> **Mimosa** adalah WhatsApp bot multi-device bertenaga **[Baileys](https://github.com/@whiskeysockets/baileys)** — dirancang dengan fokus pada **kecepatan**, **keamanan**, dan **kemudahan penggunaan**. Dari manajemen grup hingga downloader media, semuanya dalam satu bot.
+<table>
+<tr>
+<td width="50%">🤖 Core Features
 
----
+- Multi-Device Support
+- Pairing Code Login
+- QR Code Login
+- Auto Response
+- Anti Spam
+- Anti Link
+- Premium System
+- Limit System
 
-## ✨ Fitur Unggulan
+</td>
+<td width="50%">🎮 Extra Features
 
-<div align="center">
+- Downloader Menu
+- Fun Games
+- Media Converter
+- Sticker Creator
+- Audio & Video Tools
+- Upload Center
+- MongoDB Database
+- Group Management
 
-| 🔐 Auth | 🛡️ Keamanan | 💎 Premium |
-|:---:|:---:|:---:|
-| Multi-Device Support | Anti Spam | Akses Eksklusif |
-| Pairing Code | Anti Link | Daily Limit |
-| QR Login | Group Protect | Priority Queue |
+</td>
+</tr>
+</table>---
 
-| 🗄️ Database | 🎬 Media | ⬇️ Downloader |
-|:---:|:---:|:---:|
-| MongoDB Atlas | Image → Sticker | YouTube |
-| Persistent Data | Video → MP3 | TikTok |
-| Auto Backup | Audio → Voice Note | Instagram · Facebook |
+📸 Preview
 
-</div>
+<div align="center"><img src="https://files.catbox.moe/yourimage.png" width="700"></div>---
 
-- ☁️ **Hamzz Cloud** — Media uploader dengan enkripsi end-to-end
-- 🎮 **Games** — Mini-games interaktif langsung di dalam chat
-- ⚡ **Auto Respon** — Trigger-based automatic reply yang fleksibel
+📦 Installation
 
----
+📱 Termux Installation
 
-## 📦 Instalasi
+pkg update && pkg upgrade -y
 
-### Persyaratan
-```
-✅  Node.js  ≥ 20.x
-✅  MongoDB    Atlas account
-✅  FFmpeg  +  WebP tools
-```
+pkg install nodejs-lts ffmpeg webp git -y
 
-### 📱 Termux (Android)
-
-```bash
-# ── Step 1: Update & Install Tools ──────────────────────
-pkg update && pkg upgrade
-pkg install nodejs-lts ffmpeg webp git
-
-# ── Step 2: Clone Repository ────────────────────────────
 git clone https://github.com/eatmyd180/mimo.git
+
 cd mimo
 
-# ── Step 3: Install Dependencies ────────────────────────
 npm install
 
-# ── Step 4: Setup Environment ───────────────────────────
 cp .env.example .env
-nano .env          # ← isi MONGODB_URI kamu di sini
 
-# ── Step 5: Jalankan! ───────────────────────────────────
+Edit ".env" configuration:
+
+MONGODB_URI=your_mongodb_uri
+JWT_SECRET=your_secret
+
+Start the bot:
+
 node index.js
-```
 
 ---
 
-## 🔑 Cara Login
+🔑 Login Methods
 
-<details>
-<summary><b>① Pairing Code</b> &nbsp;— Direkomendasikan ✅</summary>
-<br>
+1️⃣ Pairing Code (Recommended)
 
-> Cara paling mudah, tanpa perlu scan kamera.
+USE_PAIRING_CODE = true
 
-```
-1. Buka file  index.js
-2. Ubah      →  USE_PAIRING_CODE = true
-3. Jalankan bot
-4. Masukkan nomor HP kamu saat diminta
-5. Buka WhatsApp → Setelan → Perangkat Tertaut
-6. Input kode 8 digit yang muncul
-```
-
-</details>
-
-<details>
-<summary><b>② QR Code</b></summary>
-<br>
-
-```
-1. Buka file  index.js
-2. Ubah      →  USE_PAIRING_CODE = false
-3. Jalankan bot
-4. Scan QR code dengan WhatsApp kamu
-```
-
-</details>
+- Enter your WhatsApp number
+- Receive pairing code
+- Link device from WhatsApp
 
 ---
 
-## 🚀 Deployment
+2️⃣ QR Code
 
-<details>
-<summary><b>☁️ Railway</b> &nbsp;— Recommended</summary>
-<br>
+USE_PAIRING_CODE = false
 
-```
-1.  Fork repository ini ke akun GitHub kamu
-2.  Buka  railway.app  → New Project
-3.  Connect GitHub repo → pilih mimo
-4.  Tambahkan environment variables:
-        MONGODB_URI  →  mongodb+srv://...
-        JWT_SECRET   →  your_secret_key
-5.  Klik Deploy — selesai! 🎉
-```
+- Scan QR using WhatsApp
+- Connected instantly
 
-</details>
+---
 
-<details>
-<summary><b>🖥️ VPS / Self-Hosted</b></summary>
-<br>
+🚀 Deployment
 
-```bash
-# Clone & Install
+☁️ Railway
+
+1. Fork repository
+2. Create Railway project
+3. Connect GitHub repository
+4. Add environment variables
+5. Deploy project
+
+---
+
+🖥 VPS / Ubuntu
+
 git clone https://github.com/eatmyd180/mimo.git
-cd mimo && npm install
 
-# Setup PM2 (bot tetap jalan di background)
+cd mimo
+
+npm install
+
 npm install -g pm2
+
 pm2 start index.js --name mimo
-pm2 save && pm2 startup
-```
 
-</details>
+pm2 save
 
----
-
-## ⚙️ Environment Variables
-
-Buat file `.env` di root folder:
-
-```env
-# ─── Database ───────────────────────────
-MONGODB_URI = mongodb+srv://user:pass@cluster.mongodb.net/mimo
-
-# ─── Security ───────────────────────────
-JWT_SECRET  = your_super_secret_key_here
-```
+pm2 startup
 
 ---
 
-## 🗂️ Struktur Proyek
+📁 Project Structure
 
-```
 mimo/
+├── src/
+│   ├── plugins/
+│   ├── lib/
+│   ├── database/
+│   └── utils/
 │
-├── 📁 src/
-│   ├── 📂 plugins/      ← Semua command bot
-│   ├── 📂 lib/          ← Core utilities & helpers
-│   └── 📂 database/     ← MongoDB schemas & models
-│
-├── 📁 sessions/         ← WhatsApp auth (gitignored)
-├── 📄 index.js          ← Entry point utama
-├── 📄 config.js         ← Konfigurasi bot
-└── 📄 package.json      ← Dependencies
-```
+├── sessions/
+├── temp/
+├── config.js
+├── index.js
+├── package.json
+└── .env
 
 ---
 
-## 💬 Penggunaan
+🛠 Requirements
 
-Setelah bot aktif, kirim pesan ke bot:
-
-```
-.menu    →  Lihat semua command & kategori
-.help    →  Panduan penggunaan lengkap
-```
-
----
-
-## 👨‍💻 Author
-
-<div align="center">
-
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=18&duration=2000&pause=500&color=F7A8C4&center=true&vCenter=true&width=300&lines=HamzzDev+%E2%98%95;Always+Coding...;Never+Sleeping+%F0%9F%98…" />
-
-<br/>
-
-[![GitHub](https://img.shields.io/badge/GitHub-eatmyd180-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eatmyd180)
-&nbsp;&nbsp;
-[![WhatsApp](https://img.shields.io/badge/WhatsApp-Channel-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27)
-
-</div>
+Package| Version
+Node.js| 20.x+
+MongoDB| Atlas
+FFmpeg| Latest
+WebP| Latest
 
 ---
 
-> [!NOTE]
-> 🚧 Proyek ini masih aktif dikembangkan. Fitur baru dan perbaikan bug akan terus di-update secara berkala.
+📜 Commands
+
+Use:
+
+.menu
+
+To display all available commands.
 
 ---
 
-<div align="center">
+⚠️ Disclaimer
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=13&duration=4000&pause=1000&color=888888&center=true&vCenter=true&width=500&lines=Made+with+☕+by+HamzzDev;© 2024 Mimosa Multi-Device · MIT License;Thank+you+for+using+Mimosa+🌸" />
+This project is still under active development.
+
+Some features may change anytime for:
+
+- Performance improvements
+- Bug fixes
+- New feature updates
+- Stability optimization
+
+---
+
+👨‍💻 Developer
+
+<div align="center"><a href="https://github.com/eatmyd180">
+<img src="https://img.shields.io/badge/GitHub-HamzzDev-181717?style=for-the-badge&logo=github">
+</a><a href="https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27">
+<img src="https://img.shields.io/badge/WhatsApp-Channel-25D366?style=for-the-badge&logo=whatsapp&logoColor=white">
+</a></div>---
+
+🌸 Support Project
+
+If you like this project:
+
+⭐ Star this repository
+🍴 Fork this repository
+📢 Share with your friends
+
+---
+
+📄 License
+
+Distributed under the MIT License.
+
+---
+
+<div align="center">☕ Made with love by HamzzDev
+
+© 2026 Mimosa Multi-Device
 
 </div>
