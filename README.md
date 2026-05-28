@@ -198,7 +198,7 @@ This project is licensed under the MIT License.
 ---
 
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Orbitron&duration=2000&pause=500&color=F7A8C4&center=true&vCenter=true&width=435&lines=Made+with+☕+by+HamzzDev;©+2025+Mimosa+Multi-Device;Thanks+for+visiting!" alt="Typing SVG">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&duration=2000&pause=500&color=F7A8C4&center=true&vCenter=true&width=435&lines=Made+with+&#9749;+by+HamzzDev;©+2025+Mimosa+Multi-Device;Thanks+for+visiting!" alt="Typing SVG">
 </p>
 
 <p align="center">
