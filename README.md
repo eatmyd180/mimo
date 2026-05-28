@@ -1,35 +1,44 @@
 <p align="center">
-  <img src="src/mimosa.png" alt="Mimosa Bot" width="200" height="200">
+  <img src="src/hamzz.gif" alt="Mimosa Animation" width="320">
 </p>
 
 <h1 align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=700&size=36&duration=3000&pause=500&color=F7A8C4&center=true&vCenter=true&width=600&lines=MIMOSA+MULTI-DEVICE;WhatsApp+Bot+Premium;Simple+%7C+Fast+%7C+Secure" alt="Typing SVG">
+  <img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=700&size=34&duration=3000&pause=500&color=F7A8C4&center=true&vCenter=true&width=650&lines=✨+MIMOSA+MULTI-DEVICE+✨;📱+WhatsApp+Bot+Premium;⚡+Simple+%7C+Fast+%7C+Secure" alt="Typing SVG">
 </h1>
 
 <p align="center">
   <a href="https://github.com/eatmyd180/mimo">
-    <img src="https://img.shields.io/badge/Version-7.0.0-F7A8C4?style=for-the-badge&logo=github">
+    <img src="https://img.shields.io/badge/📦_Version-7.0.0-F7A8C4?style=for-the-badge&logo=github&logoColor=white">
   </a>
   <a href="https://nodejs.org/">
-    <img src="https://img.shields.io/badge/Node.js-20.x-339933?style=for-the-badge&logo=nodedotjs&logoColor=white">
+    <img src="https://img.shields.io/badge/🟢_Node.js-20.x-339933?style=for-the-badge&logo=nodedotjs&logoColor=white">
   </a>
   <a href="https://www.mongodb.com/">
-    <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white">
+    <img src="https://img.shields.io/badge/🍃_MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white">
   </a>
   <a href="https://opensource.org/licenses/MIT">
-    <img src="https://img.shields.io/badge/License-MIT-F7A8C4?style=for-the-badge&logo=opensourceinitiative">
+    <img src="https://img.shields.io/badge/📜_License-MIT-F7A8C4?style=for-the-badge&logo=opensourceinitiative&logoColor=white">
   </a>
 </p>
 
 <p align="center">
-  <img src="https://komarev.com/ghpvc/?username=eatmyd180&label=Project+Views&color=F7A8C4&style=flat-square">
+  <img src="https://komarev.com/ghpvc/?username=eatmyd180&label=👁️_Project_Views&color=F7A8C4&style=flat-square">
+  <img src="https://img.shields.io/github/stars/eatmyd180/mimo?style=flat-square&color=F7A8C4&logo=github">
+  <img src="https://img.shields.io/github/forks/eatmyd180/mimo?style=flat-square&color=F7A8C4&logo=github">
+</p>
+
+---
+
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&duration=2000&pause=300&color=F7A8C4&center=true&vCenter=true&width=500&lines=🌟+Feature-Rich+WhatsApp+Bot;🔒+Secure+%7C+🚀+Fast;💾+MongoDB+Persistent+Storage;🎮+Games+%7C+📥+Downloader;🎨+Media+Converter+%7C+☁️+Cloud" alt="Typing SVG">
 </p>
 
 ---
 
 ## ✨ About
 
-> **Mimosa Multi-Device** is a feature-rich WhatsApp bot built with Baileys. Designed to be fast, secure, and easy to use.
+> **Mimosa Multi-Device** is a feature-rich WhatsApp bot built with Baileys.  
+> Designed to be **fast**, **secure**, and **easy to use**.
 
 ---
 
@@ -84,13 +93,11 @@ node index.js
 <summary><b>🔑 Login Methods</b></summary>
 
 Method 1: Pairing Code (Recommended)
-
 · Set USE_PAIRING_CODE = true in index.js
 · Enter your phone number when prompted
 · Enter the 8-digit code in WhatsApp Linked Devices
 
 Method 2: QR Code
-
 · Set USE_PAIRING_CODE = false in index.js
 · Scan QR code with WhatsApp
 
@@ -142,7 +149,7 @@ JWT_SECRET=your_secret_key
 📝 Usage
 
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&duration=2000&pause=500&color=F7A8C4&center=true&vCenter=true&width=435&lines=Type+.menu+to+get+started!;Explore+all+commands;Enjoy+the+bot!" alt="Typing SVG">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&duration=2000&pause=500&color=F7A8C4&center=true&vCenter=true&width=435&lines=💡+Type+.menu+to+get+started!;📚+Explore+all+commands;🎉+Enjoy+the+bot!" alt="Typing SVG">
 </p>
 
 Type .menu to see all available commands and categories.
@@ -175,12 +182,11 @@ mimo/
 
 <p align="center">
   <a href="https://github.com/eatmyd180">
-    <img src="https://img.shields.io/badge/GitHub-HamzzDev-181717?style=for-the-badge&logo=github">
+    <img src="https://img.shields.io/badge/GitHub-HamzzDev-181717?style=for-the-badge&logo=github&logoColor=white">
   </a>
   <a href="https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27">
-    <img src="https://img.shields.io/badge/WhatsApp_Channel-25D366?style=for-the-badge&logo=whatsapp">
+    <img src="https://img.shields.io/badge/WhatsApp_Channel-25D366?style=for-the-badge&logo=whatsapp&logoColor=white">
   </a>
-  
 </p>
 
 ---
@@ -196,9 +202,17 @@ This project is licensed under the MIT License.
 ---
 
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&duration=2000&pause=500&color=F7A8C4&center=true&vCenter=true&width=435&lines=Powered+By+HamzzDev+by+HamzzDev;©+2025+Mimosa+Multi-Device;Thanks+for+visiting!" alt="Typing SVG">
+  <br>
+  <img src="https://raw.githubusercontent.com/Trilokia/Trilokia/379277808c61ef204768a61bbc5d25bc7798ccf1/border_header.svg" width="100%">
+  <br>
 </p>
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=F7A8C4&height=80&section=footer">
+  <b>Made with ☕ by HamzzDev</b><br>
+  <b>© 2025 Mimosa Multi-Device</b><br>
+  <b>Thanks for visiting! 🎉</b>
+</p>
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=F7A8C4&height=100&section=footer">
 </p>
