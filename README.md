@@ -1,218 +1,186 @@
-<div align="center">🌸 MIMOSA MULTI-DEVICE 🌸</div>
+<p align="center">  
+  <img src="src/mimosa.png" alt="Mimosa Bot" width="250" height="250">  
+</p>  
 
-<div align="center"><img src="src/mimosa.png" width="220" height="220" /><br><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=30&pause=1000&color=F7A8C4&center=true&vCenter=true&random=false&width=600&lines=WhatsApp+Bot+Multi-Device;Fast+%E2%9A%A1+Secure+%F0%9F%94%92+Modern+%F0%9F%9A%80;Built+with+Baileys;Created+by+HamzzDev" /><br><br>
+<h1 align="center">  
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=32&duration=3000&pause=500&color=F7A8C4&center=true&vCenter=true&width=500&lines=MIMOSA+MULTI-DEVICE;WhatsApp+Bot;Simple+%7C+Fast+%7C+Secure" alt="Typing SVG" />  
+</h1>  
 
-<img src="https://img.shields.io/github/stars/eatmyd180/mimo?style=for-the-badge&color=F7A8C4">
-<img src="https://img.shields.io/github/forks/eatmyd180/mimo?style=for-the-badge&color=ff69b4">
-<img src="https://img.shields.io/github/license/eatmyd180/mimo?style=for-the-badge&color=blue">
-<img src="https://img.shields.io/badge/Node.js-20.x-3C873A?style=for-the-badge&logo=node.js&logoColor=white"></div>---
+<p align="center">  
+  <a href="https://github.com/eatmyd180/mimo">  
+    <img src="https://img.shields.io/badge/Version-7.0.0-blue?style=for-the-badge&logo=semver&logoColor=white">  
+  </a>  
+  <a href="https://github.com/eatmyd180/mimo">  
+    <img src="https://img.shields.io/badge/Node.js-20.x-green?style=for-the-badge&logo=node.js&logoColor=white">  
+  </a>  
+  <a href="https://github.com/eatmyd180/mimo">  
+    <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge&logo=mit&logoColor=white">  
+  </a>  
+  <a href="https://github.com/eatmyd180/mimo">  
+    <img src="https://img.shields.io/badge/Made%20with-☕-red?style=for-the-badge">  
+  </a>
+  <br>
+  <a href="https://github.com/eatmyd180/mimo">
+    <img src="https://visitor-badge.laobi.icu/badge?page_id=eatmyd180.mimo&style=for-the-badge&color=F7A8C4" alt="Visitors">
+  </a>
+</p>  
 
-🌷 About Project
+<p align="center">  
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&duration=2000&pause=500&color=F7A8C4&center=true&vCenter=true&width=435&lines=HamzzDev;Mimosa+Multi-Device;Always+Updated" alt="Typing SVG" />  
+</p>  
 
-Mimosa Multi-Device is a modern WhatsApp bot built using Baileys with support for Multi-Device connections.
+<img src="https://cdn.jsdelivr.net/gh/nicehash/nicehashCalc@master/github-assets/img/wave.gif" width="100%">
 
-Designed to be:
+## 🌸 About Mimosa
+Mimosa Multi-Device is a feature-rich WhatsApp bot built with [Baileys](https://github.com/WhiskeySockets/Baileys). Designed to be fast, secure, and easy to use for everyone.
 
-- ⚡ Fast
-- 🔒 Secure
-- 🎨 Easy to Customize
-- 🚀 Stable for Deployment
-- 📦 Lightweight & Modern
+<img src="https://cdn.jsdelivr.net/gh/nicehash/nicehashCalc@master/github-assets/img/wave.gif" width="100%">
 
-Perfect for personal bots, communities, and advanced WhatsApp automation.
+## ✨ Features
 
----
+| 🎯 Category | 📝 Details |
+|---|---|
+| 🔗 **Connection** | Multi-Device Support, Scan QR, & Pairing Code |
+| 🤖 **Automation** | Auto Respon (Trigger-based automatic replies) |
+| 🛡️ **Group Management** | Anti Spam, Anti Link, Keep your group safe |
+| ⏳ **User System** | Limit System (Daily limits) & Premium System (Special perks) |
+| 🗄️ **Database** | Persistent storage with MongoDB |
+| 🎨 **Media Converter** | Image/Video/Audio to sticker, MP3, voice note |
+| ☁️ **Media Uploader** | Upload to Hamzz Cloud (E2E Encryption) |
+| 🎮 **Games** | Fun interactive games for groups |
+| 📥 **Downloader** | YouTube, TikTok, Instagram, Facebook |
 
-✨ Main Features
+<img src="https://cdn.jsdelivr.net/gh/nicehash/nicehashCalc@master/github-assets/img/wave.gif" width="100%">
 
-<table>
-<tr>
-<td width="50%">🤖 Core Features
+## 📦 Installation & Setup
 
-- Multi-Device Support
-- Pairing Code Login
-- QR Code Login
-- Auto Response
-- Anti Spam
-- Anti Link
-- Premium System
-- Limit System
+<details>
+<summary><b>🖱️ Click to view Installation Guide</b></summary>
 
-</td>
-<td width="50%">🎮 Extra Features
+### Prerequisites
+- Node.js 20.x or higher
+- MongoDB Atlas (for database)
+- FFmpeg & WebP tools
 
-- Downloader Menu
-- Fun Games
-- Media Converter
-- Sticker Creator
-- Audio & Video Tools
-- Upload Center
-- MongoDB Database
-- Group Management
-
-</td>
-</tr>
-</table>---
-
-📸 Preview
-
-<div align="center"><img src="https://files.catbox.moe/yourimage.png" width="700"></div>---
-
-📦 Installation
-
-📱 Termux Installation
-
-pkg update && pkg upgrade -y
-
-pkg install nodejs-lts ffmpeg webp git -y
-
-git clone https://github.com/eatmyd180/mimo.git
-
-cd mimo
-
-npm install
-
+### Install on Termux
+```bash
+pkg update && pkg upgrade  
+pkg install nodejs-lts ffmpeg webp git  
+git clone https://github.com/eatmyd180/mimo.git  
+cd mimo  
+npm install  
 cp .env.example .env
-
-Edit ".env" configuration:
-
-MONGODB_URI=your_mongodb_uri
-JWT_SECRET=your_secret
-
-Start the bot:
-
+# Edit .env with your MongoDB URI  
 node index.js
+```
 
----
+### Login Methods
 
-🔑 Login Methods
+<details>
+<summary><b>Method 1: Pairing Code (Recommended)</b></summary>
 
-1️⃣ Pairing Code (Recommended)
+- Set `USE_PAIRING_CODE = true` in `index.js`
+- Enter your phone number when prompted
+- Enter the 8-digit code in WhatsApp Linked Devices
+</details>
 
-USE_PAIRING_CODE = true
+<details>
+<summary><b>Method 2: QR Code</b></summary>
 
-- Enter your WhatsApp number
-- Receive pairing code
-- Link device from WhatsApp
+- Set `USE_PAIRING_CODE = false` in `index.js`
+- Scan QR code with WhatsApp
+</details>
+</details>
 
----
+<img src="https://cdn.jsdelivr.net/gh/nicehash/nicehashCalc@master/github-assets/img/wave.gif" width="100%">
 
-2️⃣ QR Code
+## 🚀 Deployment
 
-USE_PAIRING_CODE = false
+<details>
+<summary><b>🌐 Deploy to Railway (Recommended)</b></summary>
 
-- Scan QR using WhatsApp
-- Connected instantly
+1. Fork this repository
+2. Create new project on [Railway](https://railway.app/)
+3. Connect your GitHub repo
+4. Add environment variables:
+   - `MONGODB_URI`
+   - `JWT_SECRET`
+5. Deploy!
+</details>
 
----
+<details>
+<summary><b>🖥️ Deploy to VPS</b></summary>
 
-🚀 Deployment
-
-☁️ Railway
-
-1. Fork repository
-2. Create Railway project
-3. Connect GitHub repository
-4. Add environment variables
-5. Deploy project
-
----
-
-🖥 VPS / Ubuntu
-
-git clone https://github.com/eatmyd180/mimo.git
-
-cd mimo
-
-npm install
-
-npm install -g pm2
-
-pm2 start index.js --name mimo
-
-pm2 save
-
+```bash
+git clone https://github.com/eatmyd180/mimo.git  
+cd mimo  
+npm install  
+npm install -g pm2  
+pm2 start index.js --name mimo  
+pm2 save  
 pm2 startup
+```
+</details>
+
+<img src="https://cdn.jsdelivr.net/gh/nicehash/nicehashCalc@master/github-assets/img/wave.gif" width="100%">
+
+## 📁 Environment Variables
+
+Create a `.env` file in the root directory and add the following:
+
+| Variable | Description | Required |
+|---|---|---|
+| `MONGODB_URI` | Your MongoDB Connection String | ✅ Yes |
+| `JWT_SECRET` | Secret key for authentication | ✅ Yes |
+
+## 📂 Project Structure
+
+```text
+mimo/  
+├── src/  
+│   ├── plugins/     # Bot commands  
+│   ├── lib/         # Core utilities  
+│   └── database/    # MongoDB schemas  
+├── sessions/        # WhatsApp auth (gitignored)  
+├── index.js         # Main entry  
+├── config.js        # Bot configuration  
+└── package.json     # Dependencies
+```
+
+## 📝 Usage
+
+Type `.menu` in WhatsApp to see all available commands and categories.
+
+> ⚠️ **Note:** This project is still in active development and will continue to be updated for features and bug maintenance.
+
+<img src="https://cdn.jsdelivr.net/gh/nicehash/nicehashCalc@master/github-assets/img/wave.gif" width="100%">
+
+## 📊 Repository Stats
+
+<p align="center">
+  <img src="https://github-readme-stats.vercel.app/api?username=eatmyd180&show_icons=true&theme=radical&hide_border=true&bg_color=00000000" alt="GitHub Stats" width="400">
+  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=eatmyd180&layout=compact&theme=radical&hide_border=true&bg_color=00000000" alt="Top Languages" width="400">
+</p>
+
+## 👨‍💻 Author
+
+<p align="center">  
+  <a href="https://github.com/eatmyd180">  
+    <img src="https://img.shields.io/badge/GitHub-HamzzDev-181717?style=for-the-badge&logo=github&logoColor=white">  
+  </a>  
+  <a href="https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27">  
+    <img src="https://img.shields.io/badge/WhatsApp-Channel-25D366?style=for-the-badge&logo=whatsapp&logoColor=white">  
+  </a>  
+</p>  
+
+## 📜 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
-📁 Project Structure
-
-mimo/
-├── src/
-│   ├── plugins/
-│   ├── lib/
-│   ├── database/
-│   └── utils/
-│
-├── sessions/
-├── temp/
-├── config.js
-├── index.js
-├── package.json
-└── .env
-
----
-
-🛠 Requirements
-
-Package| Version
-Node.js| 20.x+
-MongoDB| Atlas
-FFmpeg| Latest
-WebP| Latest
-
----
-
-📜 Commands
-
-Use:
-
-.menu
-
-To display all available commands.
-
----
-
-⚠️ Disclaimer
-
-This project is still under active development.
-
-Some features may change anytime for:
-
-- Performance improvements
-- Bug fixes
-- New feature updates
-- Stability optimization
-
----
-
-👨‍💻 Developer
-
-<div align="center"><a href="https://github.com/eatmyd180">
-<img src="https://img.shields.io/badge/GitHub-HamzzDev-181717?style=for-the-badge&logo=github">
-</a><a href="https://whatsapp.com/channel/0029Vaxfn57Jpe8nkfCU7p27">
-<img src="https://img.shields.io/badge/WhatsApp-Channel-25D366?style=for-the-badge&logo=whatsapp&logoColor=white">
-</a></div>---
-
-🌸 Support Project
-
-If you like this project:
-
-⭐ Star this repository
-🍴 Fork this repository
-📢 Share with your friends
-
----
-
-📄 License
-
-Distributed under the MIT License.
-
----
-
-<div align="center">☕ Made with love by HamzzDev
-
-© 2026 Mimosa Multi-Device
-
-</div>
+<p align="center">  
+  <i>Made with ☕ by HamzzDev</i><br>  
+  <i>© 2024 Mimosa Multi-Device</i><br><br>
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=15&duration=2000&pause=1000&color=F7A8C4&center=true&vCenter=true&width=300&lines=Thanks+for+visiting!;Don't+forget+to+⭐+this+repo!" alt="Typing SVG" />
+</p>
